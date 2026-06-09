@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+data/routing_log.json
+data/profile_*.json
+node_modules/
+*.gguf
+*.pt
+.DS_Store

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ModelRouter — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #000000;
+      --bg-2: #0a0a0a;
+      --surface: #111111;
+      --surface-2: #1a1a1a;
+      --border: #222222;
+      --border-2: #333333;
+      --text: #ffffff;
+      --text-2: #888888;
+      --text-3: #555555;
+      --red: #FF1744;
+      --red-dim: rgba(255, 23, 68, 0.1);
+      --red-glow: rgba(255, 23, 68, 0.3);
+      --green: #00e676;
+      --font: 'Inter', system-ui, sans-serif;
+      --mono: 'DM Mono', 'Fira Code', monospace;
+    }
+    html, body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+    a { color: var(--red); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px; border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .topbar__brand { font-size: 20px; font-weight: 800; letter-spacing: -1px; }
+    .topbar__brand span { color: var(--red); }
+    .topbar__status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); font-family: var(--mono); }
+    .topbar__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 24px 32px; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); margin-bottom: 24px; }
+    .stat-card { background: var(--bg); padding: 24px; }
+    .stat-card__label { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+    .stat-card__value { font-size: 36px; font-weight: 800; color: var(--text); line-height: 1; }
+    .stat-card__value.red { color: var(--red); }
+    .stat-card__value.green { color: var(--green); }
+    .stat-card__sub { font-size: 12px; color: var(--text-2); margin-top: 6px; }
+
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); margin-bottom: 24px; }
+    .panel { background: var(--bg); padding: 24px; }
+    .panel__title { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--red); margin-bottom: 16px; }
+    .panel__sub { font-size: 12px; color: var(--text-2); margin-bottom: 12px; }
+
+    textarea, input, select {
+      width: 100%; padding: 12px 14px; background: var(--bg-2); border: 1px solid var(--border);
+      color: var(--text); font-family: var(--font); font-size: 14px; border-radius: 0;
+      outline: none; transition: border-color 0.2s;
+    }
+    textarea:focus, input:focus, select:focus { border-color: var(--red); }
+    textarea { resize: vertical; min-height: 100px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+      border: 1px solid var(--border); background: transparent; color: var(--text);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { border-color: var(--red); color: var(--red); }
+    .btn--primary { background: var(--red); color: var(--bg); border: none; font-weight: 700; }
+    .btn--primary:hover { background: #e00030; box-shadow: 0 0 24px var(--red-glow); color: var(--bg); }
+
+    .result-box {
+      border: 1px solid var(--border); padding: 16px; margin-top: 12px;
+      font-size: 13px; line-height: 1.7; color: var(--text-2); white-space: pre-wrap;
+    }
+    .result-box .highlight { color: var(--red); font-weight: 600; }
+    .result-box .green { color: var(--green); }
+
+    .log-entry {
+      display: grid; grid-template-columns: 80px 100px 1fr 100px 80px; gap: 8px;
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-2);
+    }
+    .log-entry__header { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--text-3); text-transform: uppercase; padding: 8px 0; border-bottom: 1px solid var(--border-2); }
+    .tag {
+      display: inline-block; padding: 2px 8px; font-family: var(--mono); font-size: 9px;
+      border: 1px solid var(--border); color: var(--text-2); text-transform: uppercase;
+    }
+    .tag--simple { border-color: var(--text-3); color: var(--text-2); }
+    .tag--medium { border-color: rgba(255, 213, 79, 0.4); color: #ffd54f; }
+    .tag--complex { border-color: var(--red); color: var(--red); }
+
+    .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+    .contract-preview { border: 1px solid var(--border); padding: 16px; font-size: 12px; color: var(--text-3); line-height: 1.6; margin-top: 12px; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+
+    @media (max-width: 800px) {
+      .stats-grid, .main-grid, .bottom-grid { grid-template-columns: 1fr; }
+      .container { padding: 16px; }
+      .log-entry { grid-template-columns: 1fr 1fr; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand">Model<span>Router</span></div>
+  <div class="topbar__status">
+    <div class="topbar__dot"></div>
+    <span id="statusText">Router Active</span>
+    <span style="color:var(--text-3);margin-left:12px;" id="routeCount">0 routes</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card__label">Routes Logged</div>
+      <div class="stat-card__value" id="statRoutes">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__label">Avg Cost Savings</div>
+      <div class="stat-card__value green" id="statSavings">—</div>
+      <div class="stat-card__sub">vs always-premium routing</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__label">Classification Speed</div>
+      <div class="stat-card__value" id="statSpeed">~62ms</div>
+      <div class="stat-card__sub">Arch-Router-1.5B on GPU</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__label">Models Available</div>
+      <div class="stat-card__value red" id="statModels">9</div>
+      <div class="stat-card__sub">Across 3 routing tiers</div>
+    </div>
+  </div>
+
+  <!-- PLAYGROUND + LOGS -->
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel__title">Playground</div>
+      <div class="panel__sub">Type a prompt — see how ModelRouter classifies and routes it</div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn" onclick="setPrompt('What is your return policy?')">FAQ</button>
+        <button class="btn" onclick="setPrompt('Summarize the key points from this article about quantum computing advancements')">Summarize</button>
+        <button class="btn" onclick="setPrompt('Analyze the liability exposure in Section 4.2 of this contract and identify potential jurisdictional conflicts between EU GDPR and US CCPA compliance requirements. Provide a detailed risk assessment with mitigation strategies.')">Complex</button>
+      </div>
+
+      <textarea id="promptInput" placeholder="Enter a prompt to route...">What is your return policy?</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn--primary" onclick="routePrompt()">Route Query</button>
+        <button class="btn" onclick="clearResult()">Clear</button>
+      </div>
+
+      <div id="resultArea"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__title">Live Route Log</div>
+      <div class="panel__sub">Recent routing decisions</div>
+      <div id="logContainer">
+        <div class="log-entry log-entry__header">
+          <span>Time</span><span>Class</span><span>Model</span><span>Savings</span><span>Conf</span>
+        </div>
+        <div id="logEntries" style="max-height:400px;overflow-y:auto;">
+          <div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">No routes yet. Send a query above.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTRACT PARSER + INFO -->
+  <div class="bottom-grid">
+    <div class="panel">
+      <div class="panel__title">Contract Parser</div>
+      <div class="panel__sub">Paste a contract excerpt — ModelRouter extracts routing constraints</div>
+      <textarea id="contractInput" style="min-height:120px;" placeholder="Paste contract text here...">ACME Corp Data Processing Agreement
+
+This agreement requires all customer data to be stored and processed within the European Union in compliance with GDPR (General Data Protection Regulation). The service provider must not use DeepSeek or any China-based AI providers for data processing. All AI responses must be delivered within 1000ms latency target.
+
+Cost efficiency is a primary concern — the provider shall optimize for cost while maintaining quality standards.</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn--primary" onclick="parseContract()">Parse Contract</button>
+        <button class="btn" onclick="clearContract()">Clear</button>
+      </div>
+      <div id="contractResult"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__title">System Info</div>
+      <div class="panel__sub">ModelRouter architecture overview</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);margin-top:12px;">
+        <div style="background:var(--bg-2);padding:16px;">
+          <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;">Classifier</div>
+          <div style="font-size:13px;color:var(--text);margin-top:4px;">Arch-Router-1.5B</div>
+          <div style="font-size:11px;color:var(--text-2);">62ms · GPU · GRPO fine-tuned</div>
+        </div>
+        <div style="background:var(--bg-2);padding:16px;">
+          <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;">Routing Tiers</div>
+          <div style="font-size:13px;color:var(--text);margin-top:4px;">Simple · Medium · Complex</div>
+          <div style="font-size:11px;color:var(--text-2);">3 models per tier · cost-optimized</div>
+        </div>
+        <div style="background:var(--bg-2);padding:16px;">
+          <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;">Providers</div>
+          <div style="font-size:13px;color:var(--text);margin-top:4px;">OpenRouter Network</div>
+          <div style="font-size:11px;color:var(--text-2);">200+ models via single API</div>
+        </div>
+        <div style="background:var(--bg-2);padding:16px;">
+          <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;">Policy Engine</div>
+          <div style="font-size:13px;color:var(--text);margin-top:4px;">Contract-Aware Filtering</div>
+          <div style="font-size:11px;color:var(--text-2);">Region · Provider · Cost · Latency</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+
+async function routePrompt() {
+  const prompt = document.getElementById('promptInput').value.trim();
+  if (!prompt) return;
+
+  const area = document.getElementById('resultArea');
+  area.innerHTML = '<div class="result-box" style="border-color:var(--red);"><span style="color:var(--text-3);">Routing...</span></div>';
+
+  try {
+    const res = await fetch(`${API}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'auto',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+
+    area.innerHTML = `
+      <div class="result-box" style="border-color:var(--red);">
+        <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+          <span class="tag tag--${data.classification}">${data.classification.toUpperCase()}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text);">${data.model}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">via ${data.provider}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--green);">${data.cost_savings}% saved</span>
+        </div>
+        <div style="margin-bottom:8px;font-size:11px;color:var(--text-3);font-family:var(--mono);">Routing Path:</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          ${data.routing_path.map(p => `<span style="padding:3px 8px;border:1px solid var(--border);font-size:10px;font-family:var(--mono);color:var(--text-2);">${p}</span>`).join('<span style="color:var(--text-3);font-size:10px;">→</span>')}
+        </div>
+        <div style="font-size:13px;color:var(--text-2);line-height:1.7;">${data.response}</div>
+      </div>
+    `;
+
+    refreshStats();
+    refreshLogs();
+
+  } catch (err) {
+    area.innerHTML = `<div class="result-box" style="border-color:var(--red);color:var(--red);">Connection error: ${err.message}. Make sure the backend is running on ${API}.</div>`;
+  }
+}
+
+async function refreshStats() {
+  try {
+    const res = await fetch(`${API}/v1/stats`);
+    const data = await res.json();
+    document.getElementById('statRoutes').textContent = data.total_routes;
+    document.getElementById('statSavings').textContent = data.avg_cost_savings_pct + '%';
+    document.getElementById('routeCount').textContent = data.total_routes + ' routes';
+  } catch (e) {}
+}
+
+async function refreshLogs() {
+  try {
+    const res = await fetch(`${API}/v1/logs?limit=20`);
+    const data = await res.json();
+    const container = document.getElementById('logEntries');
+    if (!data.logs || data.logs.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-3);font-size:13px;">No routes yet.</div>';
+      return;
+    }
+    container.innerHTML = data.logs.reverse().map(entry => `
+      <div class="log-entry">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text-3);">${new Date(entry.timestamp * 1000).toLocaleTimeString()}</span>
+        <span><span class="tag tag--${entry.classification}">${entry.classification}</span></span>
+        <span>${entry.model}</span>
+        <span style="color:var(--green);">${entry.cost_savings}%</span>
+        <span style="font-family:var(--mono);font-size:10px;">${entry.latency_ms}ms</span>
+      </div>
+    `).join('');
+  } catch (e) {}
+}
+
+async function parseContract() {
+  const text = document.getElementById('contractInput').value.trim();
+  if (!text) return;
+
+  const area = document.getElementById('contractResult');
+
+  try {
+    const res = await fetch(`${API}/v1/contract/parse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, customer_name: 'ACME Corp' })
+    });
+    const data = await res.json();
+
+    area.innerHTML = `
+      <div class="contract-preview" style="border-color:var(--red);margin-top:12px;">
+        <div style="color:var(--green);margin-bottom:8px;">✓ Contract parsed → Endpoint active</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><span style="color:var(--text-3);">Customer:</span> <span style="color:var(--text);">${data.profile.customer}</span></div>
+          <div><span style="color:var(--text-3);">Region:</span> <span style="color:var(--text);">${data.profile.region.toUpperCase()}</span></div>
+          <div><span style="color:var(--text-3);">Latency Target:</span> <span style="color:var(--text);">${data.profile.latency_target_ms}ms</span></div>
+          <div><span style="color:var(--text-3);">Blocked:</span> <span style="color:var(--red);">${data.profile.blocked_providers.join(', ') || 'None'}</span></div>
+          <div><span style="color:var(--text-3);">Preferred:</span> <span style="color:var(--green);">${data.profile.preferred_providers.join(', ') || 'None'}</span></div>
+          <div><span style="color:var(--text-3);">Cost Sensitivity:</span> <span style="color:var(--text);">${data.profile.cost_sensitivity}</span></div>
+        </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--red);">
+          Endpoint: ${data.endpoint}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    area.innerHTML = `<div class="contract-preview" style="border-color:var(--red);color:var(--red);margin-top:12px;">Error: ${err.message}</div>`;
+  }
+}
+
+function setPrompt(text) {
+  document.getElementById('promptInput').value = text;
+}
+
+function clearResult() {
+  document.getElementById('resultArea').innerHTML = '';
+}
+
+function clearContract() {
+  document.getElementById('contractResult').innerHTML = '';
+}
+
+refreshStats();
+refreshLogs();
+setInterval(refreshStats, 5000);
+setInterval(refreshLogs, 5000);
+</script>
+</body>
+</html>
