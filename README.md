@@ -1,4 +1,4 @@
-# ModelRouter 🚀
+# ModelRouter 
 
 **Intelligent LLM Query Routing System** — HackArena 2.0 (Online Zonals) by Ignite Room × IIIT Delhi
 
@@ -187,7 +187,7 @@ Recent routing decisions.
 
 ## Roadmap
 
-### ✅ MVP Delivered
+### MVP Delivered
 - Contract ingestion + LLM extraction pipeline
 - Structured CustomerProfile JSON schema
 - OpenAI-compatible proxy endpoint
@@ -195,7 +195,7 @@ Recent routing decisions.
 - Policy-filtered, objective-scored routing engine
 - Full dashboard: stats, profiles, logs, playground
 
-### 🔜 Next Iterations
+### Next Iterations
 - Vector search over large contract doc sets
 - Live provider health signals in routing
 - Managed SaaS deployment (zero DevOps)
