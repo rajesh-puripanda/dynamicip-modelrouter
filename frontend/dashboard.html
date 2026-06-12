@@ -90,6 +90,12 @@
     .cost-bar { display: flex; height: 24px; border: 1px solid var(--border); margin: 8px 0; overflow: hidden; }
     .cost-bar__premium { background: var(--red); height: 100%; transition: width 0.5s; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff; font-family: var(--mono); }
     .cost-bar__saved { background: var(--green); height: 100%; transition: width 0.5s; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #000; font-family: var(--mono); font-weight: 700; }
+    .loading { opacity: 0.5; pointer-events: none; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .status-dot--ok { background: var(--green); }
+    .status-dot--err { background: var(--red); }
+    .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); padding: 10px 20px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 11px; z-index: 999; opacity: 0; transition: opacity 0.3s; }
+    .toast--show { opacity: 1; }
 
     @media (max-width: 800px) {
       .stats { grid-template-columns: 1fr 1fr; }
@@ -101,12 +107,14 @@
 </head>
 <body>
 
+<div id="toast" class="toast"></div>
+
 <div class="hero">
   <h1>Model<span>Router</span></h1>
   <p>Intelligent LLM Query Routing — live demo</p>
   <div class="badges">
     <span class="tag" style="border-color:var(--red);color:var(--red);">v1.0.0</span>
-    <span class="tag" id="statusBadge" style="border-color:var(--green);color:var(--green);">ROUTER ACTIVE</span>
+    <span class="tag" id="statusBadge" style="border-color:var(--green);color:var(--green);"><span class="status-dot status-dot--ok"></span>ROUTER ACTIVE</span>
   </div>
 </div>
 
@@ -189,12 +197,26 @@ All customer data must be stored and processed within the European Union in comp
 <script>
 const API = 'http://localhost:8000';
 let logData = [];
+let toastTimeout = null;
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'var(--red)' : 'var(--border)';
+  t.style.color = isError ? 'var(--red)' : 'var(--text)';
+  t.classList.add('toast--show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('toast--show'), 3000);
+}
 
 async function route() {
   const prompt = document.getElementById('promptInput').value.trim();
-  if (!prompt) return;
+  if (!prompt) { showToast('Enter a prompt first', true); return; }
   const area = document.getElementById('resultArea');
-  area.innerHTML = '<div class="result-card" style="border-color:var(--text-3);"><span class="dim">Routing...</span></div>';
+  const btn = document.querySelector('.btn--primary');
+  btn.classList.add('loading');
+  btn.textContent = 'Routing...';
+  area.innerHTML = '<div class="result-card" style="border-color:var(--text-3);"><span class="dim">⟳ Routing...</span></div>';
 
   try {
     const res = await fetch(`${API}/v1/chat/completions`, {
@@ -202,45 +224,65 @@ async function route() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: prompt }] })
     });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || `HTTP ${res.status}`);
+    }
     const d = await res.json();
     const cls = d.classification;
     const clsTag = cls === 'simple' ? 'tag--s' : cls === 'medium' ? 'tag--m' : 'tag--c';
-    const clsLabel = cls.toUpperCase();
+
+    const routingPath = d.routing_path || [];
+    const classifyStep = routingPath.find(p => p.startsWith('Classify')) || '';
+    const confMatch = classifyStep.match(/\((\d+)%\)/);
+    const confDisplay = confMatch ? confMatch[1] + '%' : '—';
 
     area.innerHTML = `
       <div class="result-card result-card--routing">
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-          <span class="tag ${clsTag}">${clsLabel}</span>
+          <span class="tag ${clsTag}">${cls.toUpperCase()}</span>
           <span style="font-family:var(--mono);font-size:11px;color:var(--text);">${d.model}</span>
           <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">via ${d.provider}</span>
           <span style="font-family:var(--mono);font-size:11px;color:var(--green);font-weight:600;">${d.cost_savings}% saved</span>
-          <span style="font-family:var(--mono);font-size:10px;color:var(--text-3);">conf: ${d.routing_path[0] ? d.routing_path[0].split('(')[1]?.replace(')','') || '—' : '—'}</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--text-3);">conf: ${confDisplay}</span>
         </div>
         <div class="route-pipe">
-          ${d.routing_path.map((p,i) => {
-            const isActive = i === 0 || i === d.routing_path.length - 1;
+          ${routingPath.map((p,i) => {
+            const isActive = i === 0 || i === routingPath.length - 1;
             return `<span class="${isActive ? 'active' : ''}">${p}</span>`;
           }).join('<span class="arrow">→</span>')}
         </div>
         <div style="font-size:13px;color:var(--text-2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">
-          ${d.response.replace(/\n/g, '<br>')}
+          ${(d.response || '').replace(/\n/g, '<br>')}
         </div>
       </div>
     `;
+    showToast(`Routed: ${cls} → ${d.model} (${d.cost_savings}% saved)`);
     refresh();
   } catch(e) {
-    area.innerHTML = `<div class="result-card" style="border-color:var(--red);color:var(--red);">Connection error. Is the backend running on ${API}?</div>`;
+    area.innerHTML = `<div class="result-card" style="border-color:var(--red);color:var(--red);">Error: ${e.message}</div>`;
+    showToast('Connection failed. Is the backend running?', true);
+  } finally {
+    btn.classList.remove('loading');
+    btn.textContent = 'Route Now';
   }
 }
 
 async function refresh() {
+  const badge = document.getElementById('statusBadge');
   try {
-    const s = await fetch(`${API}/v1/stats`).then(r => r.json());
+    const s = await fetch(`${API}/v1/stats`).then(r => {
+      if (!r.ok) throw new Error('Not OK');
+      return r.json();
+    });
     document.getElementById('sRoutes').textContent = s.total_routes || 0;
     document.getElementById('sSavings').textContent = (s.avg_cost_savings_pct || 0) + '%';
     const cls = s.classifications || {};
     document.getElementById('sSimple').textContent = cls.simple || 0;
     document.getElementById('sComplex').textContent = cls.complex || 0;
+    badge.innerHTML = '<span class="status-dot status-dot--ok"></span>ROUTER ACTIVE';
+    badge.style.borderColor = 'var(--green)';
+    badge.style.color = 'var(--green)';
 
     const logRes = await fetch(`${API}/v1/logs?limit=30`).then(r => r.json());
     const logs = logRes.logs || [];
@@ -249,81 +291,104 @@ async function refresh() {
 
     if (logs.length === 0) {
       container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-3);font-size:12px;">No routes yet. Send a query.</div>';
+      document.getElementById('totalSaved').textContent = '$0 saved';
       return;
     }
 
     logData = logs;
-    const totalSavings = logs.reduce((sum, e) => sum + (e.cost_savings || 0), 0);
-    document.getElementById('totalSaved').textContent = (totalSavings * 0.015 / 100).toFixed(4) + ' saved';
+    const avgSavings = logs.reduce((sum, e) => sum + (e.cost_savings || 0), 0) / logs.length;
+    const estCostPremium = logs.length * 0.3 * PREMIUM_COST_PER_K;
+    const estCostActual = logs.reduce((sum, e) => sum + (0.3 * MODEL_COST_MAP[e.model] || PREMIUM_COST_PER_K), 0);
+    const totalSavings$ = Math.max(0, estCostPremium - estCostActual);
+    document.getElementById('totalSaved').textContent = '$' + totalSavings$.toFixed(4) + ' saved';
 
-    const simpleCount = logs.filter(e => e.classification === 'simple').length;
-    const totalCount = logs.length;
-    const premiumPct = simpleCount > 0 ? Math.round((1 - simpleCount / totalCount) * 100) : 100;
+    const premiumCount = logs.filter(e => e.cost_savings < 5).length;
+    const premiumPct = logs.length > 0 ? Math.round(premiumCount / logs.length * 100) : 0;
+    const savedPct = 100 - premiumPct;
     document.getElementById('premiumBar').style.width = premiumPct + '%';
-    document.getElementById('premiumBar').textContent = premiumPct < 70 ? '' : 'PREMIUM = ' + premiumPct + '%';
+    document.getElementById('premiumBar').textContent = premiumPct > 20 ? 'PREMIUM ' + premiumPct + '%' : '';
 
-    container.innerHTML = logs.slice().reverse().slice(0, 30).map(e => {
+    container.innerHTML = logs.slice().reverse().slice(0, 50).map(e => {
       const clsTag = e.classification === 'simple' ? 'tag--s' : e.classification === 'medium' ? 'tag--m' : 'tag--c';
       return `<div class="log-entry">
         <span style="font-family:var(--mono);font-size:9px;color:var(--text-3);">${new Date(e.timestamp*1000).toLocaleTimeString()}</span>
-        <span><span class="tag ${clsTag}">${e.classification[0].toUpperCase()}</span></span>
-        <span>${e.model}</span>
-        <span style="color:var(--green);font-weight:600;">${e.cost_savings}%</span>
-        <span style="font-family:var(--mono);font-size:9px;">${e.latency_ms}ms</span>
+        <span><span class="tag ${clsTag}">${(e.classification||'?')[0].toUpperCase()}</span></span>
+        <span>${e.model || '—'}</span>
+        <span style="color:var(--green);font-weight:600;">${e.cost_savings != null ? e.cost_savings + '%' : '—'}</span>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--text-2);">${e.latency_ms || '—'}ms</span>
       </div>`;
     }).join('');
-  } catch(e) {}
+  } catch(e) {
+    badge.innerHTML = '<span class="status-dot status-dot--err"></span>OFFLINE';
+    badge.style.borderColor = 'var(--red)';
+    badge.style.color = 'var(--red)';
+  }
 }
+
+const PREMIUM_COST_PER_K = 0.018;
+const MODEL_COST_MAP = {
+  'GPT-5.4 nano': 0.00015, 'Gemini Flash Lite': 0.00010, 'Claude Haiku 4.5': 0.00025,
+  'GPT-5.4 mini': 0.0020, 'Claude Sonnet 4.6': 0.0030, 'Grok 4.1 Fast': 0.0015,
+  'GPT-5.4': 0.015, 'Claude Opus 4.6': 0.018, 'Gemini 3.1 Pro': 0.012
+};
 
 function clearResult() { document.getElementById('resultArea').innerHTML = ''; }
 
 async function parseContract() {
   const text = document.getElementById('contractInput').value.trim();
-  if (!text) return;
+  if (!text) { showToast('Enter contract text first', true); return; }
   const area = document.getElementById('contractResult');
+  const btn = document.querySelector('.btn--primary');
+  area.innerHTML = '<div class="contract-card" style="border-color:var(--text-3);"><span class="dim">⟳ Parsing...</span></div>';
   try {
     const res = await fetch(`${API}/v1/contract/parse`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, customer_name: 'ACME Corp' })
     });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const d = await res.json();
     area.innerHTML = `<div class="contract-card" style="border-color:var(--red);">
       <div style="color:var(--green);font-weight:600;margin-bottom:8px;">✓ Contract parsed — Endpoint active</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
         <div><span class="dim">Customer:</span> ${d.profile.customer}</div>
-        <div><span class="dim">Region:</span> ${d.profile.region.toUpperCase()}</div>
+        <div><span class="dim">Region:</span> ${(d.profile.region||'global').toUpperCase()}</div>
         <div><span class="dim">Latency:</span> ${d.profile.latency_target_ms}ms</div>
-        <div><span class="dim">Blocked:</span> <span class="red">${d.profile.blocked_providers.join(', ') || '—'}</span></div>
-        <div><span class="dim">Cost:</span> ${d.profile.cost_sensitivity}</div>
+        <div><span class="dim">Blocked:</span> <span class="red">${(d.profile.blocked_providers||[]).join(', ') || '—'}</span></div>
+        <div><span class="dim">Cost:</span> ${d.profile.cost_sensitivity||'balanced'}</div>
       </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--red);">${d.endpoint}</div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--red);">${d.endpoint||'/unknown/v1/chat/completions'}</div>
     </div>`;
-  } catch(e) { area.innerHTML = `<div class="contract-card" style="border-color:var(--red);color:var(--red);">Error: ${e.message}</div>`; }
+    showToast('Contract parsed successfully');
+  } catch(e) {
+    area.innerHTML = `<div class="contract-card" style="border-color:var(--red);color:var(--red);">Error: ${e.message}</div>`;
+    showToast('Parse failed: ' + e.message, true);
+  }
 }
 
 async function seedDemoData() {
   const queries = [
-    { text: "What is your return policy?", cls: "simple" },
-    { text: "How do I reset my password?", cls: "simple" },
-    { text: "What time does the store close?", cls: "simple" },
-    { text: "Is my order still shipping?", cls: "simple" },
-    { text: "Thanks for your help!", cls: "simple" },
-    { text: "Can you summarize the key findings from Q3 earnings report?", cls: "medium" },
-    { text: "Explain how quantum computing affects modern cryptography", cls: "medium" },
-    { text: "Write a professional email to a client about delayed project timeline", cls: "medium" },
-    { text: "Compare the pros and cons of microservices vs monolith architecture", cls: "medium" },
-    { text: "Analyze the liability exposure in Section 4.2 of this contract and identify jurisdictional conflicts between GDPR and CCPA compliance. Provide a detailed risk assessment with mitigation strategies.", cls: "complex" },
-    { text: "Review this code for security vulnerabilities and suggest fixes: def auth(user, pass): return db.query(f'SELECT * FROM users WHERE user=\"{user}\" AND pass=\"{pass}\"')", cls: "complex" },
-    { text: "Develop a comprehensive multi-cloud migration strategy for a fintech startup handling 50K transactions daily, considering cost, compliance, and latency requirements.", cls: "complex" }
+    "What is your return policy?",
+    "How do I reset my password?",
+    "What time does the store close?",
+    "Is my order still shipping?",
+    "Thanks for your help!",
+    "Can you summarize the key findings from Q3 earnings report?",
+    "Explain how quantum computing affects modern cryptography",
+    "Write a professional email to a client about delayed project timeline",
+    "Compare pros and cons of microservices vs monolith architecture",
+    "Analyze the liability exposure in Section 4.2 of this contract. Identify jurisdictional conflicts between GDPR and CCPA. Provide detailed risk assessment with mitigation strategies.",
+    "Review this code for security vulnerabilities: def auth(user, pass): return db.query(f'SELECT * FROM users WHERE user=\"{user}\"')",
+    "Develop a comprehensive multi-cloud migration strategy for a fintech startup handling 50K transactions daily, considering cost, compliance, and latency requirements."
   ];
 
-  for (const q of queries) {
+  showToast('Seeding ' + queries.length + ' sample routes...');
+  for (const text of queries) {
     try {
       await fetch(`${API}/v1/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: q.text }] })
+        body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: text }] })
       });
     } catch(e) {}
   }
@@ -335,13 +400,12 @@ function demoScenario(type) {
     simple: "What is your return policy?",
     medium: "Can you summarize the key findings from the Q3 earnings report and explain what they mean for investors?",
     complex: "Analyze the liability exposure in Section 4.2 of this services agreement. Identify potential jurisdictional conflicts between EU GDPR and US CCPA requirements and provide a detailed risk assessment with 3 mitigation strategies ranked by cost-effectiveness.",
-    before: "💰 BEFORE vs AFTER DEMO: What is your return policy? (Simple query routed to GPT-5.4 nano at $0.00015/1K instead of GPT-5.4 at $0.015/1K — saving 99%)"
+    before: "What is your return policy?"
   };
   document.getElementById('promptInput').value = prompts[type] || prompts.simple;
   route();
 }
 
-// Auto-refresh every 3s
 setInterval(refresh, 3000);
 refresh();
 </script>

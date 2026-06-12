@@ -3,11 +3,21 @@ import math
 
 SIMPLE_KEYWORDS = [
     "hello", "hi", "hey", "thanks", "thank you", "bye", "goodbye",
-    "what time", "what is your name", "who are you",
+    "what time", "what is your name", "who are you", "what is",
     "help", "how are you", "good morning", "good evening",
-    "yes", "no", "ok", "sure", "please",
+    "yes", "no", "ok", "sure", "please", "thanks",
     "what is the weather", "tell me a joke", "say hello",
-    "how do i", "where is", "can you repeat"
+    "how do i", "how to", "where is", "can you repeat",
+    "can you", "tell me", "i want", "i need",
+    "what does", "what was", "what are", "when is", "when does",
+    "is there", "are there", "do you", "does this",
+    "my order", "my account", "my password", "return policy",
+    "shipping", "refund", "cancel", "price", "cost",
+    "status", "track", "delivery", "hours", "location",
+    "what is your return policy", "how do i reset my password",
+    "what time do you close", "where are you located",
+    "do you have", "is this available", "how much",
+    "faq", "help me", "i have a question"
 ]
 
 COMPLEX_PATTERNS = [
@@ -49,11 +59,18 @@ MODELS = {
     }
 }
 
-PREMIUM_BASELINE_COST = 0.015
+PREMIUM_BASELINE_COST = max(
+    m["cost_per_1k"]
+    for tier in MODELS.values()
+    for m in tier["models"]
+)
 
 
 def classify_prompt(prompt: str) -> dict:
     prompt_lower = prompt.lower().strip()
+    if not prompt_lower:
+        return {"classification": "simple", "confidence": 0.5, "score": 0}
+
     word_count = len(prompt.split())
     char_count = len(prompt)
 
@@ -69,7 +86,7 @@ def classify_prompt(prompt: str) -> dict:
 
     if word_count > 100 or char_count > 600:
         complexity_score += 3
-    if word_count > 50:
+    elif word_count > 50:
         complexity_score += 1
 
     has_code = bool(re.search(r'```|def |class |function |import |const |var |<[a-z]+>', prompt))
@@ -82,28 +99,31 @@ def classify_prompt(prompt: str) -> dict:
         complexity_score += 2
 
     has_question = "?" in prompt
-    if has_question and simple_score > 0 and complexity_score < 2:
-        if word_count < 15:
-            return {
-                "classification": "simple",
-                "confidence": 0.85,
-                "score": simple_score - complexity_score
-            }
+    is_short = word_count < 20
+
+    if has_question and simple_score > 0 and complexity_score < 2 and is_short:
+        return {"classification": "simple", "confidence": 0.88, "score": simple_score - complexity_score}
+
+    if simple_score >= 3 and complexity_score == 0:
+        return {"classification": "simple", "confidence": 0.92, "score": simple_score}
 
     net_score = complexity_score - simple_score
 
-    if net_score <= 0 and word_count < 20:
+    if net_score <= 0 and is_short:
         classification = "simple"
-        confidence = min(0.95, 0.7 + simple_score * 0.05)
+        confidence = min(0.95, 0.6 + simple_score * 0.06)
     elif net_score >= 4 or has_code:
         classification = "complex"
-        confidence = min(0.95, 0.7 + complexity_score * 0.05)
+        confidence = min(0.95, 0.65 + complexity_score * 0.04)
     elif word_count > 80:
         classification = "complex"
         confidence = 0.8
+    elif simple_score >= 2 and complexity_score <= 1:
+        classification = "simple"
+        confidence = 0.78
     else:
         classification = "medium"
-        confidence = min(0.85, 0.6 + (net_score / 4) * 0.3)
+        confidence = min(0.85, 0.55 + (net_score / 4) * 0.3)
 
     return {
         "classification": classification,
@@ -137,8 +157,7 @@ def select_model(classification: str, confidence: float, profile: dict = None) -
 
         selected = models[0]
 
-    premium_model = MODELS["complex"]["models"][0]
-    cost_savings = round((premium_model["cost_per_1k"] - selected["cost_per_1k"]) / premium_model["cost_per_1k"] * 100, 1)
+    cost_savings = round((PREMIUM_BASELINE_COST - selected["cost_per_1k"]) / PREMIUM_BASELINE_COST * 100, 1)
 
     return {
         "model_name": selected["name"],

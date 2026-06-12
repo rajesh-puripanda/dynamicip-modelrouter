@@ -1,13 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from models import ChatRequest, ChatResponse, ContractInput, RouteDecision
+from models import ChatRequest, ChatResponse, ContractInput
 from classifier import classify_prompt, select_model, estimate_costs, MODELS, PREMIUM_BASELINE_COST
 from contract_parser import parse_contract
 from dashboard import router as dashboard_router
 import uvicorn
 import time
 import json
+import os
 from pathlib import Path
 
 app = FastAPI(title="ModelRouter API", version="1.0.0")
@@ -60,9 +61,12 @@ async def list_models():
     return {"models": all_models}
 
 
-@app.post("/v1/chat/completions", response_model=ChatResponse)
+@app.post("/v1/chat/completions")
 async def chat_completion(request: ChatRequest):
-    prompt = request.messages[-1].content if request.messages else ""
+    if not request.messages or not request.messages[-1].content.strip():
+        raise HTTPException(status_code=400, detail="messages[last].content is required")
+
+    prompt = request.messages[-1].content
     start = time.time()
 
     classification_result = classify_prompt(prompt)
@@ -81,15 +85,9 @@ async def chat_completion(request: ChatRequest):
         f"Response ← {route['model_name']}"
     ]
 
-    decision = RouteDecision(
-        classification=classification,
-        confidence=confidence,
-        selected_model=route["model_name"],
-        provider=route["provider"],
-        estimated_cost=route["cost_per_1k"],
-        estimated_latency_ms=route["estimated_latency_ms"],
-        reason=route["reason"]
-    )
+    premium_vs_current = PREMIUM_BASELINE_COST - route["cost_per_1k"]
+
+    response_text = _generate_response(prompt, classification, route)
 
     log_entry = {
         "prompt": prompt[:100],
@@ -106,22 +104,65 @@ async def chat_completion(request: ChatRequest):
     with open(DATA_DIR / "routing_log.json", "a") as f:
         f.write(json.dumps(log_entry) + "\n")
 
-    premium_vs_current = PREMIUM_BASELINE_COST - route["cost_per_1k"]
-
     return ChatResponse(
         model=route["model_name"],
         provider=route["provider"],
         classification=classification,
         cost_savings=round(premium_vs_current / PREMIUM_BASELINE_COST * 100, 1),
-        response=f"[{route['model_name']} via {route['provider']}]\n\n"
-                 f"Classification: {classification} (confidence: {confidence:.0%})\n"
-                 f"Cost: ${route['cost_per_1k']}/1K tokens vs ${PREMIUM_BASELINE_COST} premium\n"
-                 f"Savings: {route['cost_savings_vs_premium']}%\n\n"
-                 f"Your prompt was classified as '{classification}' and routed to {route['model_name']}.\n"
-                 f"This saves {(costs['savings_amount']*1000):.2f}¢ per 1K tokens vs always using a premium model.\n\n"
-                 f"[This is a simulated response — connect OpenRouter for real LLM output]",
+        response=response_text,
         routing_path=routing_path
     )
+
+
+MODEL_MAP = {
+    "simple": "openai/gpt-4o-mini",
+    "medium": "openai/gpt-4o",
+    "complex": "anthropic/claude-3.5-sonnet",
+}
+
+
+def _call_openrouter(prompt: str, classification: str, route: dict) -> str:
+    import httpx
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    or_model = MODEL_MAP.get(classification, "openai/gpt-4o-mini")
+
+    try:
+        resp = httpx.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": or_model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 256,
+            },
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            return resp.json()["choices"][0]["message"]["content"]
+        return f"[OpenRouter error {resp.status_code}: {resp.text[:200]}]"
+    except Exception as e:
+        return f"[OpenRouter connection failed: {e}]"
+
+
+def _generate_response(prompt: str, classification: str, route: dict) -> str:
+    lines = [
+        f"[{route['model_name']} via {route['provider']}]",
+        "",
+        f"Classification: {classification} (confidence: {route['confidence']:.0%})",
+        f"Cost: ${route['cost_per_1k']}/1K tokens vs ${PREMIUM_BASELINE_COST} premium",
+        f"Savings: {route['cost_savings_vs_premium']}%",
+    ]
+
+    if os.getenv("OPENROUTER_API_KEY"):
+        return "\n".join(lines) + "\n\n" + _call_openrouter(prompt, classification, route)
+    else:
+        lines.append("")
+        lines.append("Your prompt was classified as '{0}' and routed to {1}.".format(classification, route["model_name"]))
+        lines.append("Set OPENROUTER_API_KEY env var for real LLM responses.")
+        return "\n".join(lines)
 
 
 @app.post("/v1/contract/parse")
