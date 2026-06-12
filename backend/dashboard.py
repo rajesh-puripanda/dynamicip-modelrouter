@@ -4,7 +4,7 @@ from pathlib import Path
 
 router = APIRouter()
 
-HTML_PATH = Path(__file__).parent.parent / "frontend" / "index.html"
+HTML_PATH = Path(__file__).parent.parent / "frontend" / "dashboard.html"
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

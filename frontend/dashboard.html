@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ModelRouter — Live Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #000; --bg-2: #080808; --surface: #0e0e0e;
+      --border: #1a1a1a; --border-2: #222;
+      --text: #fff; --text-2: #888; --text-3: #444;
+      --red: #FF1744; --red-dim: rgba(255,23,68,0.08);
+      --green: #00e676; --gold: #ffd54f;
+      --font: 'Inter', system-ui, sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+    html, body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+    a { color: var(--red); text-decoration: none; }
+
+    .hero {
+      padding: 60px 32px 32px; text-align: center;
+      border-bottom: 1px solid var(--border);
+      background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(255,23,68,0.06), transparent);
+    }
+    .hero h1 { font-size: 48px; font-weight: 900; letter-spacing: -2px; }
+    .hero h1 span { color: var(--red); }
+    .hero p { color: var(--text-2); font-size: 16px; margin-top: 8px; }
+    .hero .badges { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 24px 32px; }
+
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); margin-bottom: 24px; }
+    .stat { background: var(--bg); padding: 20px 24px; }
+    .stat__label { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--text-3); }
+    .stat__value { font-size: 32px; font-weight: 800; margin-top: 4px; line-height: 1; }
+    .stat__sub { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+
+    .demo-bar {
+      display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border); padding: 14px 18px;
+      align-items: center;
+    }
+    .demo-bar__label { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--red); }
+    .demo-btn {
+      padding: 8px 16px; border: 1px solid var(--border); background: transparent;
+      color: var(--text-2); cursor: pointer; font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
+      transition: 0.2s;
+    }
+    .demo-btn:hover { border-color: var(--red); color: var(--red); }
+    .demo-btn--active { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); margin-bottom: 24px; }
+    .panel { background: var(--bg); padding: 24px; }
+    .panel__title { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; color: var(--red); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+
+    textarea { width: 100%; padding: 12px; background: var(--bg-2); border: 1px solid var(--border); color: var(--text); font-size: 14px; outline: none; min-height: 80px; font-family: var(--font); }
+    textarea:focus { border-color: var(--red); }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; font-family: var(--mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; transition: 0.2s; }
+    .btn:hover { border-color: var(--red); color: var(--red); }
+    .btn--primary { background: var(--red); color: var(--bg); border: none; font-weight: 700; }
+    .btn--primary:hover { background: #e00030; box-shadow: 0 0 24px rgba(255,23,68,0.3); color: var(--bg); }
+
+    .result-card { border: 1px solid var(--border); padding: 16px; margin-top: 12px; }
+    .result-card--routing { border-color: var(--red); }
+
+    .tag { display: inline-block; padding: 2px 8px; font-family: var(--mono); font-size: 9px; border: 1px solid var(--border); }
+    .tag--s { border-color: var(--text-3); color: var(--text-2); }
+    .tag--m { border-color: rgba(255,213,79,0.3); color: var(--gold); }
+    .tag--c { border-color: var(--red); color: var(--red); }
+
+    .route-pipe { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+    .route-pipe span { padding: 3px 8px; border: 1px solid var(--border); font-family: var(--mono); font-size: 9px; color: var(--text-2); }
+    .route-pipe .active { border-color: var(--red); color: var(--red); }
+    .route-pipe .arrow { color: var(--text-3); border: none; padding: 0; }
+
+    .log-entry { display: grid; grid-template-columns: 60px 70px 1fr 70px 50px; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 11px; align-items: center; }
+    .log-header { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--text-3); padding: 6px 0; border-bottom: 1px solid var(--border-2); }
+
+    .contract-card { border: 1px solid var(--border); padding: 16px; margin-top: 12px; font-size: 12px; line-height: 1.6; }
+
+    .money-counter {
+      font-size: 14px; font-weight: 600; color: var(--red);
+      font-family: var(--mono); padding: 8px 12px; border: 1px solid rgba(255,23,68,0.2);
+      background: rgba(255,23,68,0.03);
+    }
+
+    .cost-bar { display: flex; height: 24px; border: 1px solid var(--border); margin: 8px 0; overflow: hidden; }
+    .cost-bar__premium { background: var(--red); height: 100%; transition: width 0.5s; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff; font-family: var(--mono); }
+    .cost-bar__saved { background: var(--green); height: 100%; transition: width 0.5s; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #000; font-family: var(--mono); font-weight: 700; }
+
+    @media (max-width: 800px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .main-grid { grid-template-columns: 1fr; }
+      .container { padding: 12px 16px; }
+      .log-entry { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Model<span>Router</span></h1>
+  <p>Intelligent LLM Query Routing — live demo</p>
+  <div class="badges">
+    <span class="tag" style="border-color:var(--red);color:var(--red);">v1.0.0</span>
+    <span class="tag" id="statusBadge" style="border-color:var(--green);color:var(--green);">ROUTER ACTIVE</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><div class="stat__label">Routes</div><div class="stat__value" id="sRoutes">—</div></div>
+    <div class="stat"><div class="stat__label">Avg Savings</div><div class="stat__value green" id="sSavings">—</div><div class="stat__sub">vs premium</div></div>
+    <div class="stat"><div class="stat__label">Simple</div><div class="stat__value" id="sSimple">—</div><div class="stat__sub">routed to cheap models</div></div>
+    <div class="stat"><div class="stat__label">Complex</div><div class="stat__value" id="sComplex">—</div><div class="stat__sub">routed to powerful models</div></div>
+  </div>
+
+  <!-- DEMO QUICK ACTIONS -->
+  <div class="demo-bar">
+    <span class="demo-bar__label">⚡ QUICK DEMO</span>
+    <button class="demo-btn" onclick="demoScenario('simple')">Ask Simple FAQ</button>
+    <button class="demo-btn" onclick="demoScenario('medium')">Summarize Article</button>
+    <button class="demo-btn" onclick="demoScenario('complex')">Analyze Liabilities</button>
+    <button class="demo-btn" onclick="demoScenario('before')">💰 Show Cost: Before vs After</button>
+    <button class="demo-btn" onclick="seedDemoData()">📊 Seed Sample Data</button>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+    <!-- LEFT: Playground -->
+    <div class="panel">
+      <div class="panel__title">Route Query <span class="money-counter" id="costDisplay">$0.015/1K premium baseline</span></div>
+      <textarea id="promptInput" placeholder="Type any prompt...">What is your return policy?</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn--primary" onclick="route()">Route Now</button>
+        <button class="btn" onclick="document.getElementById('promptInput').value='';clearResult();">Clear</button>
+      </div>
+      <div id="resultArea"></div>
+    </div>
+
+    <!-- RIGHT: Route Log -->
+    <div class="panel">
+      <div class="panel__title">Route Log <span id="logCount" style="font-size:10px;color:var(--text-3);font-weight:400;">0 entries</span></div>
+      <div class="log-header" style="display:grid;grid-template-columns:60px 70px 1fr 70px 50px;gap:8px;">
+        <span>Time</span><span>Tier</span><span>Model</span><span>Savings</span><span>ms</span>
+      </div>
+      <div id="logEntries" style="max-height:320px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM: Contract Parser + Info -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);">
+    <div class="panel">
+      <div class="panel__title">Contract Parser</div>
+      <textarea id="contractInput" style="min-height:100px;">ACME Corp Data Processing Agreement
+
+All customer data must be stored and processed within the European Union in compliance with GDPR. Do not use DeepSeek or any China-based providers for data processing. AI responses must be delivered within 1000ms latency target. Cost efficiency is a primary concern — optimize for cost while maintaining quality.</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn--primary" onclick="parseContract()">Parse Contract</button>
+      </div>
+      <div id="contractResult"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__title">Cost Impact <span id="totalSaved" style="font-size:10px;color:var(--green);font-weight:400;">$0 saved</span></div>
+      <div class="panel__title" style="color:var(--text-2);font-weight:400;font-size:11px;font-family:var(--font);">
+        Each simple query costs $0.00015/1K vs $0.015/1K for premium — <span style="color:var(--red);font-weight:700;">99% savings</span>
+      </div>
+      <div class="cost-bar" id="costBar">
+        <div class="cost-bar__premium" id="premiumBar" style="width:100%;">PREMIUM = 100%</div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-2);line-height:1.5;">
+        <div>🚀 <strong style="color:var(--text);">Simple queries</strong> (FAQs, greetings): GPT-5.4 nano — <span class="green">$0.00015/1K</span></div>
+        <div>⚡ <strong style="color:var(--text);">Medium queries</strong> (summarize, explain): GPT-5.4 mini — <span class="gold">$0.002/1K</span></div>
+        <div>🧠 <strong style="color:var(--text);">Complex queries</strong> (analysis, code): GPT-5.4 — <span class="red">$0.015/1K</span></div>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);">
+        <strong style="color:var(--red);">The waste:</strong> If every query routes to the premium model, you pay <strong>$0.015/1K</strong> for everything — even "What time is it?"
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let logData = [];
+
+async function route() {
+  const prompt = document.getElementById('promptInput').value.trim();
+  if (!prompt) return;
+  const area = document.getElementById('resultArea');
+  area.innerHTML = '<div class="result-card" style="border-color:var(--text-3);"><span class="dim">Routing...</span></div>';
+
+  try {
+    const res = await fetch(`${API}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: prompt }] })
+    });
+    const d = await res.json();
+    const cls = d.classification;
+    const clsTag = cls === 'simple' ? 'tag--s' : cls === 'medium' ? 'tag--m' : 'tag--c';
+    const clsLabel = cls.toUpperCase();
+
+    area.innerHTML = `
+      <div class="result-card result-card--routing">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="tag ${clsTag}">${clsLabel}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text);">${d.model}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">via ${d.provider}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--green);font-weight:600;">${d.cost_savings}% saved</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--text-3);">conf: ${d.routing_path[0] ? d.routing_path[0].split('(')[1]?.replace(')','') || '—' : '—'}</span>
+        </div>
+        <div class="route-pipe">
+          ${d.routing_path.map((p,i) => {
+            const isActive = i === 0 || i === d.routing_path.length - 1;
+            return `<span class="${isActive ? 'active' : ''}">${p}</span>`;
+          }).join('<span class="arrow">→</span>')}
+        </div>
+        <div style="font-size:13px;color:var(--text-2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">
+          ${d.response.replace(/\n/g, '<br>')}
+        </div>
+      </div>
+    `;
+    refresh();
+  } catch(e) {
+    area.innerHTML = `<div class="result-card" style="border-color:var(--red);color:var(--red);">Connection error. Is the backend running on ${API}?</div>`;
+  }
+}
+
+async function refresh() {
+  try {
+    const s = await fetch(`${API}/v1/stats`).then(r => r.json());
+    document.getElementById('sRoutes').textContent = s.total_routes || 0;
+    document.getElementById('sSavings').textContent = (s.avg_cost_savings_pct || 0) + '%';
+    const cls = s.classifications || {};
+    document.getElementById('sSimple').textContent = cls.simple || 0;
+    document.getElementById('sComplex').textContent = cls.complex || 0;
+
+    const logRes = await fetch(`${API}/v1/logs?limit=30`).then(r => r.json());
+    const logs = logRes.logs || [];
+    const container = document.getElementById('logEntries');
+    document.getElementById('logCount').textContent = logs.length + ' entries';
+
+    if (logs.length === 0) {
+      container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-3);font-size:12px;">No routes yet. Send a query.</div>';
+      return;
+    }
+
+    logData = logs;
+    const totalSavings = logs.reduce((sum, e) => sum + (e.cost_savings || 0), 0);
+    document.getElementById('totalSaved').textContent = (totalSavings * 0.015 / 100).toFixed(4) + ' saved';
+
+    const simpleCount = logs.filter(e => e.classification === 'simple').length;
+    const totalCount = logs.length;
+    const premiumPct = simpleCount > 0 ? Math.round((1 - simpleCount / totalCount) * 100) : 100;
+    document.getElementById('premiumBar').style.width = premiumPct + '%';
+    document.getElementById('premiumBar').textContent = premiumPct < 70 ? '' : 'PREMIUM = ' + premiumPct + '%';
+
+    container.innerHTML = logs.slice().reverse().slice(0, 30).map(e => {
+      const clsTag = e.classification === 'simple' ? 'tag--s' : e.classification === 'medium' ? 'tag--m' : 'tag--c';
+      return `<div class="log-entry">
+        <span style="font-family:var(--mono);font-size:9px;color:var(--text-3);">${new Date(e.timestamp*1000).toLocaleTimeString()}</span>
+        <span><span class="tag ${clsTag}">${e.classification[0].toUpperCase()}</span></span>
+        <span>${e.model}</span>
+        <span style="color:var(--green);font-weight:600;">${e.cost_savings}%</span>
+        <span style="font-family:var(--mono);font-size:9px;">${e.latency_ms}ms</span>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+function clearResult() { document.getElementById('resultArea').innerHTML = ''; }
+
+async function parseContract() {
+  const text = document.getElementById('contractInput').value.trim();
+  if (!text) return;
+  const area = document.getElementById('contractResult');
+  try {
+    const res = await fetch(`${API}/v1/contract/parse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, customer_name: 'ACME Corp' })
+    });
+    const d = await res.json();
+    area.innerHTML = `<div class="contract-card" style="border-color:var(--red);">
+      <div style="color:var(--green);font-weight:600;margin-bottom:8px;">✓ Contract parsed — Endpoint active</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
+        <div><span class="dim">Customer:</span> ${d.profile.customer}</div>
+        <div><span class="dim">Region:</span> ${d.profile.region.toUpperCase()}</div>
+        <div><span class="dim">Latency:</span> ${d.profile.latency_target_ms}ms</div>
+        <div><span class="dim">Blocked:</span> <span class="red">${d.profile.blocked_providers.join(', ') || '—'}</span></div>
+        <div><span class="dim">Cost:</span> ${d.profile.cost_sensitivity}</div>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--red);">${d.endpoint}</div>
+    </div>`;
+  } catch(e) { area.innerHTML = `<div class="contract-card" style="border-color:var(--red);color:var(--red);">Error: ${e.message}</div>`; }
+}
+
+async function seedDemoData() {
+  const queries = [
+    { text: "What is your return policy?", cls: "simple" },
+    { text: "How do I reset my password?", cls: "simple" },
+    { text: "What time does the store close?", cls: "simple" },
+    { text: "Is my order still shipping?", cls: "simple" },
+    { text: "Thanks for your help!", cls: "simple" },
+    { text: "Can you summarize the key findings from Q3 earnings report?", cls: "medium" },
+    { text: "Explain how quantum computing affects modern cryptography", cls: "medium" },
+    { text: "Write a professional email to a client about delayed project timeline", cls: "medium" },
+    { text: "Compare the pros and cons of microservices vs monolith architecture", cls: "medium" },
+    { text: "Analyze the liability exposure in Section 4.2 of this contract and identify jurisdictional conflicts between GDPR and CCPA compliance. Provide a detailed risk assessment with mitigation strategies.", cls: "complex" },
+    { text: "Review this code for security vulnerabilities and suggest fixes: def auth(user, pass): return db.query(f'SELECT * FROM users WHERE user=\"{user}\" AND pass=\"{pass}\"')", cls: "complex" },
+    { text: "Develop a comprehensive multi-cloud migration strategy for a fintech startup handling 50K transactions daily, considering cost, compliance, and latency requirements.", cls: "complex" }
+  ];
+
+  for (const q of queries) {
+    try {
+      await fetch(`${API}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: q.text }] })
+      });
+    } catch(e) {}
+  }
+  refresh();
+}
+
+function demoScenario(type) {
+  const prompts = {
+    simple: "What is your return policy?",
+    medium: "Can you summarize the key findings from the Q3 earnings report and explain what they mean for investors?",
+    complex: "Analyze the liability exposure in Section 4.2 of this services agreement. Identify potential jurisdictional conflicts between EU GDPR and US CCPA requirements and provide a detailed risk assessment with 3 mitigation strategies ranked by cost-effectiveness.",
+    before: "💰 BEFORE vs AFTER DEMO: What is your return policy? (Simple query routed to GPT-5.4 nano at $0.00015/1K instead of GPT-5.4 at $0.015/1K — saving 99%)"
+  };
+  document.getElementById('promptInput').value = prompts[type] || prompts.simple;
+  route();
+}
+
+// Auto-refresh every 3s
+setInterval(refresh, 3000);
+refresh();
+</script>
+</body>
+</html>
