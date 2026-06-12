@@ -187,8 +187,11 @@ All customer data must be stored and processed within the European Union in comp
         <div>⚡ <strong style="color:var(--text);">Medium queries</strong> (summarize, explain): GPT-5.4 mini — <span class="gold">$0.002/1K</span></div>
         <div>🧠 <strong style="color:var(--text);">Complex queries</strong> (analysis, code): GPT-5.4 — <span class="red">$0.015/1K</span></div>
       </div>
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);">
-        <strong style="color:var(--red);">The waste:</strong> If every query routes to the premium model, you pay <strong>$0.015/1K</strong> for everything — even "What time is it?"
+            <strong style="color:var(--red);">The waste:</strong> If every query routes to the premium model, you pay <strong>$0.015/1K</strong> for everything — even "What time is it?"
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
+        <button class="btn" onclick="exportCSV()" style="font-size:9px;">⬇ Export CSV</button>
+        <button class="btn" onclick="seedDemoData()" style="font-size:9px;">📊 Seed Data</button>
       </div>
     </div>
   </div>
@@ -198,6 +201,7 @@ All customer data must be stored and processed within the European Union in comp
 const API = 'http://localhost:8000';
 let logData = [];
 let toastTimeout = null;
+let liveTotalSaved = 0;
 
 function showToast(msg, isError) {
   const t = document.getElementById('toast');
@@ -207,6 +211,15 @@ function showToast(msg, isError) {
   t.classList.add('toast--show');
   clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => t.classList.remove('toast--show'), 3000);
+}
+
+function extractAnswer(response) {
+  if (!response) return '';
+  if (response.includes('Set OPENROUTER')) return response;
+  const lines = response.split('\n');
+  const metaEnd = lines.findIndex((l, i) => i > 0 && l === '' && lines[i-1].includes('Savings'));
+  if (metaEnd > 0) return lines.slice(metaEnd + 1).join('\n').trim();
+  return response;
 }
 
 async function route() {
@@ -237,14 +250,18 @@ async function route() {
     const confMatch = classifyStep.match(/\((\d+)%\)/);
     const confDisplay = confMatch ? confMatch[1] + '%' : '—';
 
+    const answer = extractAnswer(d.response);
+    const isReal = !d.response.includes('simulated') && !d.response.includes('Set OPENROUTER');
+
     area.innerHTML = `
       <div class="result-card result-card--routing">
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
           <span class="tag ${clsTag}">${cls.toUpperCase()}</span>
           <span style="font-family:var(--mono);font-size:11px;color:var(--text);">${d.model}</span>
-          <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">via ${d.provider}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">→ ${d.provider}</span>
           <span style="font-family:var(--mono);font-size:11px;color:var(--green);font-weight:600;">${d.cost_savings}% saved</span>
           <span style="font-family:var(--mono);font-size:10px;color:var(--text-3);">conf: ${confDisplay}</span>
+          ${isReal ? '<span class="tag tag--green" style="border-color:var(--green);color:var(--green);font-size:8px;">LIVE</span>' : ''}
         </div>
         <div class="route-pipe">
           ${routingPath.map((p,i) => {
@@ -253,7 +270,7 @@ async function route() {
           }).join('<span class="arrow">→</span>')}
         </div>
         <div style="font-size:13px;color:var(--text-2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">
-          ${(d.response || '').replace(/\n/g, '<br>')}
+          ${answer ? answer.replace(/\n/g, '<br>') : '<span class="dim">(response)</span>'}
         </div>
       </div>
     `;
@@ -284,33 +301,33 @@ async function refresh() {
     badge.style.borderColor = 'var(--green)';
     badge.style.color = 'var(--green)';
 
-    const logRes = await fetch(`${API}/v1/logs?limit=30`).then(r => r.json());
+    const logRes = await fetch(`${API}/v1/logs?limit=50`).then(r => r.json());
     const logs = logRes.logs || [];
     const container = document.getElementById('logEntries');
     document.getElementById('logCount').textContent = logs.length + ' entries';
 
     if (logs.length === 0) {
       container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-3);font-size:12px;">No routes yet. Send a query.</div>';
-      document.getElementById('totalSaved').textContent = '$0 saved';
+      document.getElementById('totalSaved').textContent = '$0.00000';
       return;
     }
 
     logData = logs;
-    const avgSavings = logs.reduce((sum, e) => sum + (e.cost_savings || 0), 0) / logs.length;
-    const estCostPremium = logs.length * 0.3 * PREMIUM_COST_PER_K;
-    const estCostActual = logs.reduce((sum, e) => sum + (0.3 * MODEL_COST_MAP[e.model] || PREMIUM_COST_PER_K), 0);
-    const totalSavings$ = Math.max(0, estCostPremium - estCostActual);
-    document.getElementById('totalSaved').textContent = '$' + totalSavings$.toFixed(4) + ' saved';
+    liveTotalSaved = logs.reduce((sum, e) => {
+      const premium = 0.3 * 0.018;
+      const actual = 0.3 * (MODEL_COST_MAP[e.model] || 0.018);
+      return sum + Math.max(0, premium - actual);
+    }, 0);
+    document.getElementById('totalSaved').textContent = '$' + liveTotalSaved.toFixed(5);
 
     const premiumCount = logs.filter(e => e.cost_savings < 5).length;
     const premiumPct = logs.length > 0 ? Math.round(premiumCount / logs.length * 100) : 0;
-    const savedPct = 100 - premiumPct;
     document.getElementById('premiumBar').style.width = premiumPct + '%';
-    document.getElementById('premiumBar').textContent = premiumPct > 20 ? 'PREMIUM ' + premiumPct + '%' : '';
+    document.getElementById('premiumBar').textContent = premiumPct > 20 ? 'WASTED ' + premiumPct + '%' : '';
 
     container.innerHTML = logs.slice().reverse().slice(0, 50).map(e => {
       const clsTag = e.classification === 'simple' ? 'tag--s' : e.classification === 'medium' ? 'tag--m' : 'tag--c';
-      return `<div class="log-entry">
+      return `<div class="log-entry" onclick="showPromptDetail(${JSON.stringify(e).replace(/"/g, '&quot;')})" style="cursor:pointer;">
         <span style="font-family:var(--mono);font-size:9px;color:var(--text-3);">${new Date(e.timestamp*1000).toLocaleTimeString()}</span>
         <span><span class="tag ${clsTag}">${(e.classification||'?')[0].toUpperCase()}</span></span>
         <span>${e.model || '—'}</span>
@@ -334,11 +351,14 @@ const MODEL_COST_MAP = {
 
 function clearResult() { document.getElementById('resultArea').innerHTML = ''; }
 
+function showPromptDetail(e) {
+  showToast('Prompt: ' + (e.prompt || '...') + ' | ' + e.model + ' | ' + e.cost_savings + '% saved');
+}
+
 async function parseContract() {
   const text = document.getElementById('contractInput').value.trim();
   if (!text) { showToast('Enter contract text first', true); return; }
   const area = document.getElementById('contractResult');
-  const btn = document.querySelector('.btn--primary');
   area.innerHTML = '<div class="contract-card" style="border-color:var(--text-3);"><span class="dim">⟳ Parsing...</span></div>';
   try {
     const res = await fetch(`${API}/v1/contract/parse`, {
@@ -366,6 +386,30 @@ async function parseContract() {
   }
 }
 
+function exportCSV() {
+  if (!logData || logData.length === 0) { showToast('No data to export', true); return; }
+  const headers = ['Time', 'Classification', 'Model', 'Provider', 'Savings%', 'Latency(ms)', 'Confidence', 'Prompt'];
+  const rows = logData.map(e => [
+    new Date(e.timestamp*1000).toISOString(),
+    e.classification || '',
+    e.model || '',
+    e.provider || '',
+    e.cost_savings || 0,
+    e.latency_ms || 0,
+    e.confidence || '',
+    (e.prompt || '').replace(/"/g, '""')
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.map(v => typeof v === 'string' && v.includes(',') ? '"' + v + '"' : v).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'modelrouter-routes-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Exported ' + logData.length + ' routes');
+}
+
 async function seedDemoData() {
   const queries = [
     "What is your return policy?",
@@ -377,9 +421,9 @@ async function seedDemoData() {
     "Explain how quantum computing affects modern cryptography",
     "Write a professional email to a client about delayed project timeline",
     "Compare pros and cons of microservices vs monolith architecture",
-    "Analyze the liability exposure in Section 4.2 of this contract. Identify jurisdictional conflicts between GDPR and CCPA. Provide detailed risk assessment with mitigation strategies.",
+    "Analyze the liability exposure in Section 4.2 of this contract. Identify jurisdictional conflicts between GDPR and CCPA. Provide detailed risk assessment.",
     "Review this code for security vulnerabilities: def auth(user, pass): return db.query(f'SELECT * FROM users WHERE user=\"{user}\"')",
-    "Develop a comprehensive multi-cloud migration strategy for a fintech startup handling 50K transactions daily, considering cost, compliance, and latency requirements."
+    "Develop a multi-cloud migration strategy for a fintech startup handling 50K transactions daily."
   ];
 
   showToast('Seeding ' + queries.length + ' sample routes...');
@@ -405,6 +449,18 @@ function demoScenario(type) {
   document.getElementById('promptInput').value = prompts[type] || prompts.simple;
   route();
 }
+
+let counterInterval = setInterval(() => {
+  const el = document.getElementById('totalSaved');
+  if (!el) return;
+  const current = parseFloat(el.textContent.replace('$', '')) || 0;
+  const target = liveTotalSaved;
+  if (Math.abs(target - current) > 0.00001) {
+    const step = (target - current) * 0.15;
+    const next = current + step;
+    el.textContent = '$' + Math.abs(next).toFixed(5);
+  }
+}, 100);
 
 setInterval(refresh, 3000);
 refresh();

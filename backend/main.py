@@ -90,14 +90,14 @@ async def chat_completion(request: ChatRequest):
     response_text = _generate_response(prompt, classification, route)
 
     log_entry = {
-        "prompt": prompt[:100],
+        "prompt": prompt[:120],
         "classification": classification,
         "confidence": confidence,
         "model": route["model_name"],
         "provider": route["provider"],
         "cost_savings": route["cost_savings_vs_premium"],
         "latency_ms": int((time.time() - start) * 1000),
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
     routing_log.append(log_entry)
 
@@ -114,7 +114,13 @@ async def chat_completion(request: ChatRequest):
     )
 
 
-MODEL_MAP = {
+SYSTEM_PROMPTS = {
+    "simple": "You are a helpful assistant. Answer briefly in 1-2 sentences. Be direct and useful. Do not explain what you cannot do.",
+    "medium": "You are a helpful assistant. Give a concise but complete answer in 2-4 sentences. Focus on the key points.",
+    "complex": "You are a senior analyst. Provide a structured, thorough analysis. Use bullet points where helpful. Be precise and detailed."
+}
+
+OPENROUTER_MODELS = {
     "simple": "openai/gpt-4o-mini",
     "medium": "openai/gpt-4o",
     "complex": "anthropic/claude-3.5-sonnet",
@@ -124,7 +130,8 @@ MODEL_MAP = {
 def _call_openrouter(prompt: str, classification: str, route: dict) -> str:
     import httpx
     api_key = os.getenv("OPENROUTER_API_KEY")
-    or_model = MODEL_MAP.get(classification, "openai/gpt-4o-mini")
+    or_model = OPENROUTER_MODELS.get(classification, "openai/gpt-4o-mini")
+    system_prompt = SYSTEM_PROMPTS.get(classification, SYSTEM_PROMPTS["simple"])
 
     try:
         resp = httpx.post(
@@ -135,8 +142,12 @@ def _call_openrouter(prompt: str, classification: str, route: dict) -> str:
             },
             json={
                 "model": or_model,
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
                 "max_tokens": 256,
+                "temperature": 0.3,
             },
             timeout=15,
         )
