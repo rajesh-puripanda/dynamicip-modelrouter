@@ -12,9 +12,9 @@ echo [1/2] Installing dependencies...
 
 echo [2/2] Starting ModelRouter engine...
 echo.
-echo  API:      http://localhost:8000
-echo  Dashboard: http://localhost:8000/dashboard
-echo  Docs:     http://localhost:8000/docs
+echo  API:      http://localhost:8001
+echo  Dashboard: http://localhost:8001/dashboard
+echo  Docs:     http://localhost:8001/docs
 echo.
 echo  Press Ctrl+C to stop
 echo.

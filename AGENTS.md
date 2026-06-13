@@ -62,7 +62,7 @@
 cd dynamicip-modelrouter
 pip install -r backend/requirements.txt
 python backend/main.py
-# → http://localhost:8000 (API) + http://localhost:8000/dashboard (Dashboard)
+# → http://localhost:8001 (API) + http://localhost:8001/dashboard (Dashboard)
 ```
 
 Or with Docker:

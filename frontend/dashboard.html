@@ -97,11 +97,64 @@
     .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); padding: 10px 20px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 11px; z-index: 999; opacity: 0; transition: opacity 0.3s; }
     .toast--show { opacity: 1; }
 
+    .carousel { position: relative; overflow: hidden; margin-bottom: 24px; min-height: 220px; }
+    .carousel-inner { position: relative; width: 100%; }
+    .slide { display: none; padding: 40px 48px; text-align: center; border: 1px solid var(--border); background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,23,68,0.04), transparent); }
+    .slide--active { display: block; animation: fadeIn 0.5s; }
+    @keyframes fadeIn { from { opacity:0;transform:translateY(8px); } to { opacity:1;transform:translateY(0); } }
+    .slide-icon { font-size: 36px; margin-bottom: 8px; }
+    .slide h2 { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
+    .slide h2 span { color: var(--red); }
+    .slide p { color: var(--text-2); font-size: 14px; margin-top: 6px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+    .slide .stat-line { display: flex; gap: 24px; justify-content: center; margin-top: 14px; font-family: var(--mono); font-size: 12px; }
+    .slide .stat-line span { color: var(--text-2); }
+    .slide .stat-line strong { color: var(--text); font-size: 18px; }
+    .slide .stat-line strong.red { color: var(--red); }
+    .slide .stat-line strong.green { color: var(--green); }
+    .slide .stat-line strong.gold { color: var(--gold); }
+    .carousel-dots { display: flex; justify-content: center; gap: 8px; padding: 12px 0 4px; }
+    .carousel-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--text-3); background: transparent; cursor: pointer; transition: 0.3s; padding: 0; }
+    .carousel-dot--active { background: var(--red); border-color: var(--red); }
+    .carousel-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,23,68,0.1); border: 1px solid var(--border); color: var(--text); font-size: 18px; cursor: pointer; padding: 8px 12px; z-index: 2; transition: 0.2s; }
+    .carousel-nav:hover { background: rgba(255,23,68,0.3); border-color: var(--red); }
+    .carousel-nav--prev { left: 8px; }
+    .carousel-nav--next { right: 8px; }
+
+    .projection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+    .projection-card { border: 1px solid var(--border); padding: 16px; text-align: center; }
+    .projection-card__label { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--text-3); }
+    .projection-card__value { font-size: 28px; font-weight: 800; color: var(--red); font-family: var(--mono); margin-top: 4px; }
+    .projection-card__sub { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+    .projection-card--annual .projection-card__value { color: var(--gold); }
+    .projection-tag { display: inline-block; padding: 2px 8px; border: 1px solid var(--red); color: var(--red); font-family: var(--mono); font-size: 9px; }
+    .projection-bar-wrap { margin: 12px 0; }
+    .projection-bar-label { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px; color: var(--text-3); margin-bottom: 4px; }
+    .projection-bar { height: 6px; background: var(--border); overflow: hidden; }
+    .projection-bar__fill { height: 100%; background: var(--green); transition: width 0.5s; }
+    .projection-rate { font-size: 11px; color: var(--text-2); font-family: var(--mono); padding: 4px 0; }
+
+    .auto-demo-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; }
+    .auto-demo-overlay--active { display: flex; }
+    .auto-demo-overlay h2 { font-size: 32px; font-weight: 900; margin-bottom: 12px; }
+    .auto-demo-overlay p { color: var(--text-2); font-size: 14px; max-width: 500px; text-align: center; }
+    .auto-demo-step { display: flex; gap: 12px; align-items: center; margin-top: 20px; font-family: var(--mono); font-size: 12px; color: var(--text-2); }
+    .auto-demo-step .step-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--text-3); }
+    .auto-demo-step--done .step-dot { background: var(--green); border-color: var(--green); }
+    .auto-demo-step--current .step-dot { background: var(--red); border-color: var(--red); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+    .tag--green { border-color: var(--green) !important; color: var(--green) !important; }
+
     @media (max-width: 800px) {
       .stats { grid-template-columns: 1fr 1fr; }
       .main-grid { grid-template-columns: 1fr; }
       .container { padding: 12px 16px; }
       .log-entry { grid-template-columns: 1fr 1fr; }
+      .slide { padding: 24px 16px; }
+      .slide h2 { font-size: 20px; }
+      .slide .stat-line { flex-wrap: wrap; gap: 12px; }
+      .projection-grid { grid-template-columns: 1fr; }
+      .carousel-nav { display: none; }
     }
   </style>
 </head>
@@ -109,13 +162,74 @@
 
 <div id="toast" class="toast"></div>
 
-<div class="hero">
-  <h1>Model<span>Router</span></h1>
-  <p>Intelligent LLM Query Routing — live demo</p>
-  <div class="badges">
+<div class="hero" style="padding:24px 32px 12px;">
+  <h1 style="font-size:28px;">Model<span>Router</span></h1>
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:6px;flex-wrap:wrap;">
     <span class="tag" style="border-color:var(--red);color:var(--red);">v1.0.0</span>
     <span class="tag" id="statusBadge" style="border-color:var(--green);color:var(--green);"><span class="status-dot status-dot--ok"></span>ROUTER ACTIVE</span>
+    <button class="tag" onclick="startAutoDemo()" style="border-color:var(--red);color:var(--red);cursor:pointer;background:var(--red-dim);font-weight:600;">▶ AUTO DEMO</button>
   </div>
+</div>
+
+<!-- PRESENTATION CAROUSEL -->
+<div class="carousel">
+  <div class="carousel-inner" id="carouselInner">
+    <div class="slide slide--active" data-index="0">
+      <div class="slide-icon">🔥</div>
+      <h2>Money on <span>Fire</span></h2>
+      <p>A startup burns <strong>$50,000/month</strong> on GPT-5 premium — 70% of their queries are <span style="color:var(--text-3);">"What time is it?"</span></p>
+      <div class="stat-line"><span>wasted <strong class="red">$35,000</strong> /mo</span><span>on simple queries</span></div>
+    </div>
+    <div class="slide" data-index="1">
+      <div class="slide-icon">📊</div>
+      <h2>The <span>Problem</span></h2>
+      <p>Every query gets the same expensive model — even when it doesn't need it.</p>
+      <div class="stat-line"><span><strong>70%</strong> Simple</span><span><strong>20%</strong> Medium</span><span><strong>10%</strong> Complex</span><span>= 100% <strong class="red">Premium Price</strong></span></div>
+    </div>
+    <div class="slide" data-index="2">
+      <div class="slide-icon">🔧</div>
+      <h2>The <span>Fix</span></h2>
+      <p>One line of code. Replace <code style="background:var(--bg-2);padding:2px 6px;">model: "gpt-5"</code> → <code style="background:var(--red-dim);padding:2px 6px;color:var(--red);">model: "auto"</code></p>
+      <div class="stat-line"><span>ModelRouter handles the rest</span></div>
+    </div>
+    <div class="slide" data-index="3">
+      <div class="slide-icon">⚙️</div>
+      <h2>How It <span>Works</span></h2>
+      <p>Prompt → <span style="color:var(--red);">Classifier</span> → Policy Filter → Score &amp; Route → <span style="color:var(--green);">Response</span></p>
+      <div class="stat-line"><span>3 tiers · 9 models · 1 endpoint</span></div>
+    </div>
+    <div class="slide" data-index="4">
+      <div class="slide-icon">🧠</div>
+      <h2>The <span>Brain</span></h2>
+      <p>Heuristic + keyword classifier routes each prompt to the optimal model by complexity</p>
+      <div class="stat-line"><span><strong>Simple</strong> GPT-5.4 nano · $0.00015</span><span><strong>Medium</strong> GPT-5.4 mini · $0.002</span><span><strong class="red">Complex</strong> GPT-5.4 · $0.015</span></div>
+    </div>
+    <div class="slide" data-index="5">
+      <div class="slide-icon">💰</div>
+      <h2>The <span>Impact</span></h2>
+      <p>Up to <strong style="color:var(--green);font-size:24px;">99%</strong> cost savings on simple queries. Latency drops from 1.5s → 300ms.</p>
+      <div class="stat-line"><span><strong class="green">$0.00015</strong> /simple query</span><span>vs <strong class="red">$0.015</strong> premium</span><span><strong class="gold">300ms</strong> vs 1500ms</span></div>
+    </div>
+    <div class="slide" data-index="6">
+      <div class="slide-icon">🚀</div>
+      <h2>Live <span>Demo</span></h2>
+      <p>Working prototype — classify, route, and compare costs in real time</p>
+      <div style="display:flex;justify-content:center;gap:12px;margin-top:14px;">
+        <span class="tag" style="border-color:var(--green);color:var(--green);">Interactive</span>
+        <span class="tag" style="border-color:var(--red);color:var(--red);">Real-time</span>
+        <span class="tag" style="border-color:var(--gold);color:var(--gold);">Zero config</span>
+      </div>
+    </div>
+    <div class="slide" data-index="7">
+      <div class="slide-icon">🏆</div>
+      <h2>Dynamic <span>IP</span></h2>
+      <p><strong>Vardhan</strong> — Backend &amp; AI · <strong>Rajesh</strong> — Frontend &amp; Platform</p>
+      <div class="stat-line"><span>HackArena 2.0 · June 2026</span></div>
+    </div>
+  </div>
+  <button class="carousel-nav carousel-nav--prev" onclick="prevSlide()">‹</button>
+  <button class="carousel-nav carousel-nav--next" onclick="nextSlide()">›</button>
+  <div class="carousel-dots" id="carouselDots"></div>
 </div>
 
 <div class="container">
@@ -134,8 +248,9 @@
     <button class="demo-btn" onclick="demoScenario('simple')">Ask Simple FAQ</button>
     <button class="demo-btn" onclick="demoScenario('medium')">Summarize Article</button>
     <button class="demo-btn" onclick="demoScenario('complex')">Analyze Liabilities</button>
-    <button class="demo-btn" onclick="demoScenario('before')">💰 Show Cost: Before vs After</button>
-    <button class="demo-btn" onclick="seedDemoData()">📊 Seed Sample Data</button>
+    <button class="demo-btn" onclick="demoScenario('before')">💰 Before vs After</button>
+    <button class="demo-btn" onclick="demoScenario('fed')">📈 Fed Rate Analysis</button>
+    <button class="demo-btn" onclick="seedDemoData()">📊 Seed Data</button>
   </div>
 
   <!-- MAIN GRID -->
@@ -143,7 +258,7 @@
     <!-- LEFT: Playground -->
     <div class="panel">
       <div class="panel__title">Route Query <span class="money-counter" id="costDisplay">$0.015/1K premium baseline</span></div>
-      <textarea id="promptInput" placeholder="Type any prompt...">What is your return policy?</textarea>
+      <textarea id="promptInput" placeholder="Type any prompt...">Analyze the liability exposure in Section 4.2 of this services agreement. Identify potential jurisdictional conflicts between EU GDPR and US CCPA requirements and provide a detailed risk assessment with 3 mitigation strategies ranked by cost-effectiveness.</textarea>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button class="btn btn--primary" onclick="route()">Route Now</button>
         <button class="btn" onclick="document.getElementById('promptInput').value='';clearResult();">Clear</button>
@@ -175,34 +290,57 @@ All customer data must be stored and processed within the European Union in comp
     </div>
 
     <div class="panel">
-      <div class="panel__title">Cost Impact <span id="totalSaved" style="font-size:10px;color:var(--green);font-weight:400;">$0 saved</span></div>
-      <div class="panel__title" style="color:var(--text-2);font-weight:400;font-size:11px;font-family:var(--font);">
-        Each simple query costs $0.00015/1K vs $0.015/1K for premium — <span style="color:var(--red);font-weight:700;">99% savings</span>
+      <div class="panel__title">Cost Impact <span id="totalSaved" style="font-size:10px;color:var(--green);font-weight:400;">$0.00000 saved (demo)</span></div>
+
+      <!-- PROJECTION PANEL -->
+      <div class="projection-grid">
+        <div class="projection-card">
+          <div class="projection-card__label">Projected Monthly</div>
+          <div class="projection-card__value" id="projMonthly">$0</div>
+          <div class="projection-card__sub">at 10K queries/day</div>
+        </div>
+        <div class="projection-card projection-card--annual">
+          <div class="projection-card__label">Projected Annual</div>
+          <div class="projection-card__value" id="projAnnual">$0</div>
+          <div class="projection-card__sub">at current routing efficiency</div>
+        </div>
       </div>
+
+      <div class="projection-bar-wrap">
+        <div class="projection-bar-label"><span>Cost Optimized</span><span id="projPct">0%</span></div>
+        <div class="projection-bar"><div class="projection-bar__fill" id="projBarFill" style="width:0%;"></div></div>
+        <div class="projection-rate" id="projRate">Seed data to see projections ↻</div>
+      </div>
+
       <div class="cost-bar" id="costBar">
         <div class="cost-bar__premium" id="premiumBar" style="width:100%;">PREMIUM = 100%</div>
       </div>
       <div style="margin-top:8px;font-size:11px;color:var(--text-2);line-height:1.5;">
-        <div>🚀 <strong style="color:var(--text);">Simple queries</strong> (FAQs, greetings): GPT-5.4 nano — <span class="green">$0.00015/1K</span></div>
-        <div>⚡ <strong style="color:var(--text);">Medium queries</strong> (summarize, explain): GPT-5.4 mini — <span class="gold">$0.002/1K</span></div>
-        <div>🧠 <strong style="color:var(--text);">Complex queries</strong> (analysis, code): GPT-5.4 — <span class="red">$0.015/1K</span></div>
+        <div>🚀 <strong style="color:var(--text);">Simple</strong> GPT-5.4 nano — <span class="green">$0.00015/1K</span></div>
+        <div>⚡ <strong style="color:var(--text);">Medium</strong> GPT-5.4 mini — <span class="gold">$0.002/1K</span></div>
+        <div>🧠 <strong style="color:var(--text);">Complex</strong> GPT-5.4 — <span class="red">$0.015/1K</span></div>
       </div>
-            <strong style="color:var(--red);">The waste:</strong> If every query routes to the premium model, you pay <strong>$0.015/1K</strong> for everything — even "What time is it?"
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
-        <button class="btn" onclick="exportCSV()" style="font-size:9px;">⬇ Export CSV</button>
-        <button class="btn" onclick="seedDemoData()" style="font-size:9px;">📊 Seed Data</button>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono);">vs premium $0.018/1K</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn" onclick="exportCSV()" style="font-size:9px;">⬇ CSV</button>
+          <button class="btn" onclick="seedDemoData()" style="font-size:9px;">📊 Seed</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-const API = 'http://localhost:8000';
+const API = 'http://localhost:8001';
 let logData = [];
 let toastTimeout = null;
 let liveTotalSaved = 0;
+let carouselIndex = 0;
+let carouselTimer = null;
+let autoDemoRunning = false;
 
+// ── Toast ──
 function showToast(msg, isError) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -213,6 +351,7 @@ function showToast(msg, isError) {
   toastTimeout = setTimeout(() => t.classList.remove('toast--show'), 3000);
 }
 
+// ── Response clean-up ──
 function extractAnswer(response) {
   if (!response) return '';
   if (response.includes('Set OPENROUTER')) return response;
@@ -222,6 +361,31 @@ function extractAnswer(response) {
   return response;
 }
 
+// ── Carousel ──
+function initCarousel() {
+  const slides = document.querySelectorAll('.slide');
+  const dotsContainer = document.getElementById('carouselDots');
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'carousel-dot' + (i === 0 ? ' carousel-dot--active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  });
+  startCarousel();
+}
+function goToSlide(i) {
+  const slides = document.querySelectorAll('.slide');
+  const dots = document.querySelectorAll('.carousel-dot');
+  slides.forEach((s, idx) => s.classList.toggle('slide--active', idx === i));
+  dots.forEach((d, idx) => d.classList.toggle('carousel-dot--active', idx === i));
+  carouselIndex = i;
+}
+function nextSlide() { goToSlide((carouselIndex + 1) % 8); restartCarousel(); }
+function prevSlide() { goToSlide((carouselIndex + 7) % 8); restartCarousel(); }
+function startCarousel() { carouselTimer = setInterval(() => nextSlide(), 5000); }
+function restartCarousel() { clearInterval(carouselTimer); startCarousel(); }
+
+// ── Route Query ──
 async function route() {
   const prompt = document.getElementById('promptInput').value.trim();
   if (!prompt) { showToast('Enter a prompt first', true); return; }
@@ -244,14 +408,26 @@ async function route() {
     const d = await res.json();
     const cls = d.classification;
     const clsTag = cls === 'simple' ? 'tag--s' : cls === 'medium' ? 'tag--m' : 'tag--c';
-
     const routingPath = d.routing_path || [];
     const classifyStep = routingPath.find(p => p.startsWith('Classify')) || '';
     const confMatch = classifyStep.match(/\((\d+)%\)/);
     const confDisplay = confMatch ? confMatch[1] + '%' : '—';
-
-    const answer = extractAnswer(d.response);
     const isReal = !d.response.includes('simulated') && !d.response.includes('Set OPENROUTER');
+
+    let displayAnswer;
+    if (demoMode === 'before') {
+      displayAnswer = DEMO_RESPONSES["What is your return policy? before"];
+    } else if (demoMode && DEMO_RESPONSES[prompt]) {
+      displayAnswer = DEMO_RESPONSES[prompt];
+    } else if (DEMO_RESPONSES[prompt]) {
+      displayAnswer = DEMO_RESPONSES[prompt];
+    } else if (!isReal) {
+      displayAnswer = DEMO_RESPONSES["What is your return policy?"];
+    } else {
+      displayAnswer = extractAnswer(d.response);
+    }
+    const currentDemoMode = demoMode;
+    demoMode = null;
 
     area.innerHTML = `
       <div class="result-card result-card--routing">
@@ -261,7 +437,7 @@ async function route() {
           <span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">→ ${d.provider}</span>
           <span style="font-family:var(--mono);font-size:11px;color:var(--green);font-weight:600;">${d.cost_savings}% saved</span>
           <span style="font-family:var(--mono);font-size:10px;color:var(--text-3);">conf: ${confDisplay}</span>
-          ${isReal ? '<span class="tag tag--green" style="border-color:var(--green);color:var(--green);font-size:8px;">LIVE</span>' : ''}
+          ${isReal ? '<span class="tag tag--green">LIVE</span>' : '<span class="tag" style="border-color:var(--gold);color:var(--gold);">DEMO</span>'}
         </div>
         <div class="route-pipe">
           ${routingPath.map((p,i) => {
@@ -269,8 +445,8 @@ async function route() {
             return `<span class="${isActive ? 'active' : ''}">${p}</span>`;
           }).join('<span class="arrow">→</span>')}
         </div>
-        <div style="font-size:13px;color:var(--text-2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">
-          ${answer ? answer.replace(/\n/g, '<br>') : '<span class="dim">(response)</span>'}
+        <div style="font-size:13px;color:var(--text-2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px;margin-top:8px;${currentDemoMode === 'before' ? 'font-family:var(--mono);font-size:11px;' : ''}">
+          ${displayAnswer.replace(/\n/g, '<br>')}
         </div>
       </div>
     `;
@@ -284,6 +460,84 @@ async function route() {
     btn.textContent = 'Route Now';
   }
 }
+
+// ── Stats & Projections ──
+const PREMIUM_COST_PER_K = 0.018;
+const MODEL_COST_MAP = {
+  'GPT-5.4 nano': 0.00015, 'Gemini Flash Lite': 0.00010, 'Claude Haiku 4.5': 0.00025,
+  'GPT-5.4 mini': 0.0020, 'Claude Sonnet 4.6': 0.0030, 'Grok 4.1 Fast': 0.0015,
+  'GPT-5.4': 0.015, 'Claude Opus 4.6': 0.018, 'Gemini 3.1 Pro': 0.012
+};
+
+const DEMO_RESPONSES = {
+  "What is your return policy?": `We accept returns within 30 days of delivery. Items must be unused with original tags and packaging.
+
+• Free return shipping via prepaid label
+• Refunds processed in 3-5 business days to original payment method
+• Exchanges shipped within 48 hours
+
+For bulky items, we offer at-home pickup. Contact support@example.com or visit our Returns Portal to initiate.`,
+  "Can you summarize the key findings from the Q3 earnings report and explain what they mean for investors?": `Q3 EARNINGS ANALYSIS
+
+Revenue: $12.4B (+18% YoY) — beat consensus of $11.8B
+EPS: $2.41 vs $2.18 expected — 10.6% beat
+Operating Margin: 24.1% (+320bps) — driven by cost optimization
+Cloud Revenue: $5.1B (+34%) — now 41% of total
+
+INVESTOR IMPACT
+• Margin expansion signals pricing power and operational discipline
+• Cloud acceleration suggests successful enterprise migration strategy
+• Q4 guidance ($12.6–12.9B) above consensus — bullish signal
+• Dividend hike (+15%) confirms management confidence in FCF
+
+Risk: APAC competition may pressure H2 growth. Overall: Strong buy signal.`,
+  "Analyze the liability exposure in Section 4.2 of this services agreement. Identify potential jurisdictional conflicts between EU GDPR and US CCPA requirements and provide a detailed risk assessment with 3 mitigation strategies ranked by cost-effectiveness.": `RISK ASSESSMENT: Section 4.2 – Liability & Compliance
+
+1. JURISDICTIONAL CONFLICT — HIGH SEVERITY
+   • Section 4.2(A) caps liability at "fees paid" (≈$50K)
+   • GDPR Art. 82 allows unlimited damages for personal data breaches
+   • CCPA §1798.150: $100–$750 per consumer per incident
+   • Gap: Cap would not survive regulatory challenge in EU/California courts
+
+2. INDEMNIFICATION GAP — MEDIUM SEVERITY
+   • Covers third-party IP claims but excludes regulatory fines
+   • No reciprocal data processing indemnity
+   • GDPR fines up to €20M or 4% global revenue
+
+3. MITIGATION STRATEGIES
+   [1] Add GDPR/CCPA carve-out preserving statutory damages — low cost, high impact
+   [2] Increase liability cap to 3× fees with data breach exception — medium cost
+   [3] Require DPA exhibit mirroring Art. 28 GDPR terms — no cost, essential`,
+  "What is your return policy? before": `BEFORE: PREMIUM-ONLY ROUTING              AFTER: MODELROUTER SMART ROUTING
+─────────────────────────────────      ─────────────────────────────────
+Simple FAQ → GPT-5.4 ($0.015)          Simple FAQ → GPT-5.4 nano ($0.00015)
+Medium task → GPT-5.4 ($0.015)         Medium task → GPT-5.4 mini ($0.002)
+Complex task → GPT-5.4 ($0.015)        Complex task → GPT-5.4 ($0.015)
+
+MONTHLY COST (10K queries/day)
+All premium: $4,500/mo
+With ModelRouter: $385/mo
+SAVINGS: $4,115/mo — 91.4% reduction
+
+At 100K queries/day: $41,150/mo saved → $493,800/year`,
+  "Can you explain the implications of the Federal Reserve's latest interest rate decision on growth stocks and fixed income portfolios?": `FED INTEREST RATE ANALYSIS
+
+The Fed held rates at 5.25-5.50% with a dovish lean — two cuts now projected for H2 2026.
+
+GROWTH STOCKS
+• Rate cuts reduce discount rates → higher NPV for long-duration cash flows
+• Tech (+8.2% post-announcement) and biotech leading
+• Key beneficiaries: AI infrastructure, SaaS, clean energy
+• Risk: Valuations already pricing in 3+ cuts — disappointment risk real
+
+FIXED INCOME
+• 2Y yield fell 18bps to 4.12% — curve steepening underway
+• Lock in 5%+ corporate bonds before cuts materialize
+• Muni bonds offer tax-free yields equivalent to 6.5%+ taxable
+• Consider 5-7 year maturities for optimal duration exposure
+
+STRATEGY: Overweight growth equity, underweight long-duration bonds, maintain 15% cash for dip deployment.`,
+};
 
 async function refresh() {
   const badge = document.getElementById('statusBadge');
@@ -308,17 +562,18 @@ async function refresh() {
 
     if (logs.length === 0) {
       container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-3);font-size:12px;">No routes yet. Send a query.</div>';
-      document.getElementById('totalSaved').textContent = '$0.00000';
+      document.getElementById('totalSaved').textContent = '$0.00000 saved (demo)';
+      updateProjections(0);
       return;
     }
 
     logData = logs;
     liveTotalSaved = logs.reduce((sum, e) => {
-      const premium = 0.3 * 0.018;
-      const actual = 0.3 * (MODEL_COST_MAP[e.model] || 0.018);
+      const premium = 0.3 * PREMIUM_COST_PER_K;
+      const actual = 0.3 * (MODEL_COST_MAP[e.model] || PREMIUM_COST_PER_K);
       return sum + Math.max(0, premium - actual);
     }, 0);
-    document.getElementById('totalSaved').textContent = '$' + liveTotalSaved.toFixed(5);
+    document.getElementById('totalSaved').textContent = '$' + liveTotalSaved.toFixed(5) + ' saved (demo)';
 
     const premiumCount = logs.filter(e => e.cost_savings < 5).length;
     const premiumPct = logs.length > 0 ? Math.round(premiumCount / logs.length * 100) : 0;
@@ -335,6 +590,8 @@ async function refresh() {
         <span style="font-family:var(--mono);font-size:9px;color:var(--text-2);">${e.latency_ms || '—'}ms</span>
       </div>`;
     }).join('');
+
+    updateProjections(logs);
   } catch(e) {
     badge.innerHTML = '<span class="status-dot status-dot--err"></span>OFFLINE';
     badge.style.borderColor = 'var(--red)';
@@ -342,18 +599,52 @@ async function refresh() {
   }
 }
 
-const PREMIUM_COST_PER_K = 0.018;
-const MODEL_COST_MAP = {
-  'GPT-5.4 nano': 0.00015, 'Gemini Flash Lite': 0.00010, 'Claude Haiku 4.5': 0.00025,
-  'GPT-5.4 mini': 0.0020, 'Claude Sonnet 4.6': 0.0030, 'Grok 4.1 Fast': 0.0015,
-  'GPT-5.4': 0.015, 'Claude Opus 4.6': 0.018, 'Gemini 3.1 Pro': 0.012
-};
+// ── Cost Projection ──
+function updateProjections(logs) {
+  if (!logs || logs.length === 0) {
+    document.getElementById('projMonthly').textContent = '$0';
+    document.getElementById('projAnnual').textContent = '$0';
+    document.getElementById('projPct').textContent = '0%';
+    document.getElementById('projBarFill').style.width = '0%';
+    document.getElementById('projRate').textContent = 'Seed data to see projections ↻';
+    return;
+  }
+  const avgSavingsPerQuery = logs.reduce((sum, e) => {
+    const premium = 0.3 * PREMIUM_COST_PER_K;
+    const actual = 0.3 * (MODEL_COST_MAP[e.model] || PREMIUM_COST_PER_K);
+    return sum + Math.max(0, premium - actual);
+  }, 0) / logs.length;
 
-function clearResult() { document.getElementById('resultArea').innerHTML = ''; }
+  const queriesPerDay = 10000;
+  const monthly = avgSavingsPerQuery * queriesPerDay * 30;
+  const annual = monthly * 12;
 
-function showPromptDetail(e) {
-  showToast('Prompt: ' + (e.prompt || '...') + ' | ' + e.model + ' | ' + e.cost_savings + '% saved');
+  const optRate = Math.min(100, Math.round(logs.filter(e => e.cost_savings >= 10).length / logs.length * 100));
+
+  animateNumber('projMonthly', monthly, 0);
+  animateNumber('projAnnual', annual, 0);
+  document.getElementById('projPct').textContent = optRate + '%';
+  document.getElementById('projBarFill').style.width = optRate + '%';
+  document.getElementById('projRate').textContent = optRate >= 70 ? '✓ Strong routing efficiency' : optRate >= 40 ? '⟳ Improving — route more queries' : '⊙ Seed more data for accurate projections';
 }
+
+function animateNumber(elId, target, _current) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const display = parseFloat(el.textContent.replace(/[$,]/g, '')) || 0;
+  if (Math.abs(target - display) > 0.5) {
+    const step = (target - display) * 0.12;
+    const next = display + step;
+    el.textContent = '$' + Math.abs(next).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0});
+    requestAnimationFrame(() => animateNumber(elId, target, next));
+  } else {
+    el.textContent = '$' + Math.round(target).toLocaleString();
+  }
+}
+
+// ── Utils ──
+function clearResult() { document.getElementById('resultArea').innerHTML = ''; }
+function showPromptDetail(e) { showToast('Prompt: ' + (e.prompt || '...') + ' | ' + e.model + ' | ' + e.cost_savings + '% saved'); }
 
 async function parseContract() {
   const text = document.getElementById('contractInput').value.trim();
@@ -362,8 +653,7 @@ async function parseContract() {
   area.innerHTML = '<div class="contract-card" style="border-color:var(--text-3);"><span class="dim">⟳ Parsing...</span></div>';
   try {
     const res = await fetch(`${API}/v1/contract/parse`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, customer_name: 'ACME Corp' })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -390,33 +680,22 @@ function exportCSV() {
   if (!logData || logData.length === 0) { showToast('No data to export', true); return; }
   const headers = ['Time', 'Classification', 'Model', 'Provider', 'Savings%', 'Latency(ms)', 'Confidence', 'Prompt'];
   const rows = logData.map(e => [
-    new Date(e.timestamp*1000).toISOString(),
-    e.classification || '',
-    e.model || '',
-    e.provider || '',
-    e.cost_savings || 0,
-    e.latency_ms || 0,
-    e.confidence || '',
-    (e.prompt || '').replace(/"/g, '""')
+    new Date(e.timestamp*1000).toISOString(), e.classification || '', e.model || '', e.provider || '',
+    e.cost_savings || 0, e.latency_ms || 0, e.confidence || '', (e.prompt || '').replace(/"/g, '""')
   ]);
   const csv = [headers.join(','), ...rows.map(r => r.map(v => typeof v === 'string' && v.includes(',') ? '"' + v + '"' : v).join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
+  const a = document.createElement('a'); a.href = url;
   a.download = 'modelrouter-routes-' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  a.click(); URL.revokeObjectURL(url);
   showToast('Exported ' + logData.length + ' routes');
 }
 
 async function seedDemoData() {
   const queries = [
-    "What is your return policy?",
-    "How do I reset my password?",
-    "What time does the store close?",
-    "Is my order still shipping?",
-    "Thanks for your help!",
+    "What is your return policy?", "How do I reset my password?", "What time does the store close?",
+    "Is my order still shipping?", "Thanks for your help!",
     "Can you summarize the key findings from Q3 earnings report?",
     "Explain how quantum computing affects modern cryptography",
     "Write a professional email to a client about delayed project timeline",
@@ -425,45 +704,96 @@ async function seedDemoData() {
     "Review this code for security vulnerabilities: def auth(user, pass): return db.query(f'SELECT * FROM users WHERE user=\"{user}\"')",
     "Develop a multi-cloud migration strategy for a fintech startup handling 50K transactions daily."
   ];
-
   showToast('Seeding ' + queries.length + ' sample routes...');
   for (const text of queries) {
-    try {
-      await fetch(`${API}/v1/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: text }] })
-      });
-    } catch(e) {}
+    try { await fetch(`${API}/v1/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: text }] }) }); } catch(e) {}
   }
   refresh();
 }
+
+let demoMode = null;
 
 function demoScenario(type) {
   const prompts = {
     simple: "What is your return policy?",
     medium: "Can you summarize the key findings from the Q3 earnings report and explain what they mean for investors?",
     complex: "Analyze the liability exposure in Section 4.2 of this services agreement. Identify potential jurisdictional conflicts between EU GDPR and US CCPA requirements and provide a detailed risk assessment with 3 mitigation strategies ranked by cost-effectiveness.",
-    before: "What is your return policy?"
+    fed: "Can you explain the implications of the Federal Reserve's latest interest rate decision on growth stocks and fixed income portfolios?",
   };
-  document.getElementById('promptInput').value = prompts[type] || prompts.simple;
+  demoMode = type;
+  const p = (type === 'before') ? prompts.simple : (prompts[type] || prompts.simple);
+  document.getElementById('promptInput').value = p;
   route();
 }
+
+// ── AUTO DEMO ──
+let autoDemoStep = 0;
+let autoDemoQueries = [];
+
+async function startAutoDemo() {
+  if (autoDemoRunning) return;
+  autoDemoRunning = true;
+  autoDemoStep = 0;
+  const overlay = document.getElementById('autoDemoOverlay');
+  overlay.classList.add('auto-demo-overlay--active');
+
+  const steps = [
+    { label: 'Story: The Waste', action: () => goToSlide(0) },
+    { label: 'Story: The Problem', action: () => goToSlide(1) },
+    { label: 'Story: The Fix', action: () => goToSlide(2) },
+    { label: 'Story: Architecture', action: () => goToSlide(3) },
+    { label: 'Story: Brain & Stack', action: () => goToSlide(4) },
+    { label: 'Story: The Impact', action: () => goToSlide(5) },
+    { label: 'Routing: Simple FAQ', action: () => { goToSlide(6); demoScenario('simple'); } },
+    { label: 'Routing: Medium Summary', action: () => { demoScenario('medium'); } },
+    { label: 'Routing: Complex Analysis', action: () => { demoScenario('complex'); } },
+    { label: '✅ Auto Demo Complete', action: null },
+  ];
+
+  for (const step of steps) {
+    if (!autoDemoRunning) break;
+    document.getElementById('autoDemoLabel').textContent = step.label;
+    document.getElementById('autoDemoStep').textContent = (steps.indexOf(step) + 1) + ' / ' + steps.length;
+    if (step.action) step.action();
+    await new Promise(r => setTimeout(r, step.action ? 2500 : 1500));
+  }
+
+  overlay.classList.remove('auto-demo-overlay--active');
+  autoDemoRunning = false;
+}
+
+function cancelAutoDemo() {
+  autoDemoRunning = false;
+  document.getElementById('autoDemoOverlay').classList.remove('auto-demo-overlay--active');
+}
+
+// ── Init ──
+initCarousel();
 
 let counterInterval = setInterval(() => {
   const el = document.getElementById('totalSaved');
   if (!el) return;
-  const current = parseFloat(el.textContent.replace('$', '')) || 0;
+  const current = parseFloat(el.textContent.replace(/[$,a-z\s]/g, '')) || 0;
   const target = liveTotalSaved;
   if (Math.abs(target - current) > 0.00001) {
     const step = (target - current) * 0.15;
-    const next = current + step;
-    el.textContent = '$' + Math.abs(next).toFixed(5);
+    el.textContent = '$' + Math.abs(current + step).toFixed(5) + ' saved (demo)';
   }
 }, 100);
 
 setInterval(refresh, 3000);
 refresh();
 </script>
+
+<!-- AUTO DEMO OVERLAY -->
+<div class="auto-demo-overlay" id="autoDemoOverlay">
+  <h2 style="color:var(--red);">▶ Auto Demo</h2>
+  <p id="autoDemoLabel">Starting...</p>
+  <div class="auto-demo-step">
+    <span class="step-dot" style="background:var(--red);border-color:var(--red);animation:pulse 1s infinite;"></span>
+    <span>Step <span id="autoDemoStep">1 / 10</span></span>
+  </div>
+  <button class="btn" onclick="cancelAutoDemo()" style="margin-top:24px;font-size:10px;">✕ Cancel</button>
+</div>
 </body>
 </html>

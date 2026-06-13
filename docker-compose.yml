@@ -5,11 +5,11 @@ services:
     build: ./backend
     container_name: modelrouter
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - ./data:/app/data
       - ./frontend:/app/frontend
     restart: unless-stopped
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 
   # Future: add OpenRouter sidecar, vector DB, etc.

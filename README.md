@@ -63,7 +63,7 @@ python backend/main.py
 from openai import OpenAI
 
 client = OpenAI(
-    base_url="http://localhost:8000/v1",
+    base_url="http://localhost:8001/v1",
     api_key="modelrouter-test"
 )
 
@@ -76,7 +76,7 @@ print(response.choices[0].message.content)
 ```
 
 ### 4. Open the Dashboard
-Visit **http://localhost:8000/dashboard** — live stats, route log, playground, and contract parser.
+Visit **http://localhost:8001/dashboard** — live stats, route log, playground, and contract parser.
 
 ---
 
@@ -126,7 +126,7 @@ Recent routing decisions.
                               │
                     ┌─────────▼───────────┐
                     │   FastAPI Backend    │
-                    │   (Port 8000)        │
+                    │   (Port 8001)        │
                     │                      │
                     │  ┌────────────────┐  │
                     │  │ Classifier      │  │  ← Arch-Router-1.5B (62ms)

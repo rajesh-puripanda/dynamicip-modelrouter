@@ -104,7 +104,7 @@ Thank you."
 - **Switching**: Cut between slides and dashboard cleanly
 
 ### Dashboard Demo Sequence (timed)
-1. Open http://localhost:8000/dashboard
+1. Open http://localhost:8001/dashboard
 2. Click "Ask Simple FAQ" demo button → show classification, model, 99% savings
 3. Click "Analyze Liabilities" → show Complex classification → Opus 4.6
 4. Point to Route Log showing both entries
