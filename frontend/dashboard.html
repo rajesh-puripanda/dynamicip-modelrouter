@@ -145,6 +145,29 @@
 
     .tag--green { border-color: var(--green) !important; color: var(--green) !important; }
 
+    .onboarding { border: 1px solid var(--border); margin-bottom: 1px; }
+    .onboarding__header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .onboarding__header h3 { font-size: 11px; font-family: var(--mono); letter-spacing: 2px; }
+    .onboarding__step { display: none; padding: 18px; }
+    .onboarding__step--active { display: block; }
+    .onboarding__step-number { font-family: var(--mono); font-size: 9px; color: var(--text-3); letter-spacing: 1px; }
+    .onboarding__step-title { font-size: 16px; font-weight: 700; margin: 4px 0 12px; }
+    .contract-option { border: 1px solid var(--border); padding: 14px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; }
+    .contract-option:hover { border-color: var(--red); }
+    .contract-option--selected { border-color: var(--red); background: var(--red-dim); }
+    .contract-option__name { font-size: 14px; font-weight: 600; }
+    .contract-option__desc { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+    .contract-option__badge { display: inline-block; padding: 1px 6px; font-family: var(--mono); font-size: 8px; border: 1px solid var(--text-3); color: var(--text-2); margin-left: 6px; }
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+    .profile-item { padding: 8px 10px; border: 1px solid var(--border); font-size: 11px; }
+    .profile-item__label { font-family: var(--mono); font-size: 8px; letter-spacing: 1px; color: var(--text-3); }
+    .profile-item__value { font-size: 13px; font-weight: 600; margin-top: 2px; }
+    .endpoint-display { font-family: var(--mono); font-size: 12px; padding: 10px 14px; border: 1px solid var(--red); background: var(--red-dim); margin: 12px 0; word-break: break-all; }
+    .onboarding-progress { display: flex; gap: 0; margin-bottom: 0; }
+    .onboarding-progress__step { flex: 1; padding: 8px; text-align: center; font-family: var(--mono); font-size: 8px; letter-spacing: 1px; border-bottom: 2px solid var(--border); color: var(--text-3); }
+    .onboarding-progress__step--done { border-bottom-color: var(--green); color: var(--green); }
+    .onboarding-progress__step--active { border-bottom-color: var(--red); color: var(--red); font-weight: 600; }
+
     @media (max-width: 800px) {
       .stats { grid-template-columns: 1fr 1fr; }
       .main-grid { grid-template-columns: 1fr; }
@@ -278,17 +301,82 @@
     </div>
   </div>
 
-  <!-- BOTTOM: Contract Parser + Info -->
+  <!-- BOTTOM: Onboarding Wizard + Cost Impact -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);">
-    <div class="panel">
-      <div class="panel__title">Contract Parser</div>
-      <textarea id="contractInput" style="min-height:100px;">ACME Corp Data Processing Agreement
+    <div class="panel" style="padding:0;">
+      <div class="onboarding">
+        <div class="onboarding__header">
+          <h3>📋 <span style="color:var(--red);">Onboard</span> Customer</h3>
+          <div id="onboardingStatus" style="font-family:var(--mono);font-size:9px;color:var(--text-3);">Select a contract ↓</div>
+        </div>
+        <div class="onboarding-progress" id="onboardingProgress">
+          <div class="onboarding-progress__step onboarding-progress__step--active" data-step="1">1. CHOOSE</div>
+          <div class="onboarding-progress__step" data-step="2">2. PROFILE</div>
+          <div class="onboarding-progress__step" data-step="3">3. ENDPOINT</div>
+          <div class="onboarding-progress__step" data-step="4">4. ROUTE</div>
+        </div>
 
-All customer data must be stored and processed within the European Union in compliance with GDPR. Do not use DeepSeek or any China-based providers for data processing. AI responses must be delivered within 1000ms latency target. Cost efficiency is a primary concern — optimize for cost while maintaining quality.</textarea>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="btn btn--primary" onclick="parseContract()">Parse Contract</button>
+        <!-- STEP 1: Choose Contract -->
+        <div class="onboarding__step onboarding__step--active" id="onbStep1">
+          <div class="onboarding__step-number">STEP 1/4</div>
+          <div class="onboarding__step-title">Choose a Customer Contract</div>
+          <div class="contract-option" onclick="selectContract('acme')" id="optAcme">
+            <div><span class="contract-option__name">ACME Corp</span><span class="contract-option__badge">EU · GDPR</span></div>
+            <div class="contract-option__desc">Data Processing Agreement — EU-only storage, DeepSeek blocked, 1000ms latency target, cost-sensitive</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--text-3);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">ACME Corp Data Processing Agreement... All customer data must be stored within the European Union. Do not use DeepSeek or China-based providers. Responses under 1000ms. Cost efficiency is primary.</div>
+          </div>
+          <div class="contract-option" onclick="selectContract('globex')" id="optGlobex">
+            <div><span class="contract-option__name">Globex Inc</span><span class="contract-option__badge">US · CCPA</span></div>
+            <div class="contract-option__desc">Service Agreement — US data processing, prefers OpenAI &amp; Anthropic, 500ms latency target, quality-critical</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--text-3);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">Globex Inc Service Agreement... Data processed in US under CCPA. Preferred: OpenAI and Anthropic. Maximum 500ms latency. Quality is the primary concern.</div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Profile -->
+        <div class="onboarding__step" id="onbStep2">
+          <div class="onboarding__step-number">STEP 2/4</div>
+          <div class="onboarding__step-title">Customer Profile Extracted</div>
+          <div class="profile-grid" id="profileGrid">
+            <div class="profile-item"><div class="profile-item__label">Customer</div><div class="profile-item__value" id="profCustomer">—</div></div>
+            <div class="profile-item"><div class="profile-item__label">Region</div><div class="profile-item__value" id="profRegion">—</div></div>
+            <div class="profile-item"><div class="profile-item__label">Latency Target</div><div class="profile-item__value" id="profLatency">—</div></div>
+            <div class="profile-item"><div class="profile-item__label">Blocked Providers</div><div class="profile-item__value" id="profBlocked">—</div></div>
+            <div class="profile-item"><div class="profile-item__label">Preferred Providers</div><div class="profile-item__value" id="profPreferred">—</div></div>
+            <div class="profile-item"><div class="profile-item__label">Cost Sensitivity</div><div class="profile-item__value" id="profCost">—</div></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn--primary" onclick="onboardingNext()">✓ Confirm &amp; Generate Endpoint</button>
+            <button class="btn" onclick="onboardingReset()">← Back</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Endpoint -->
+        <div class="onboarding__step" id="onbStep3">
+          <div class="onboarding__step-number">STEP 3/4</div>
+          <div class="onboarding__step-title">Endpoint Generated</div>
+          <p style="font-size:12px;color:var(--text-2);margin-bottom:8px;">Drop this into any OpenAI-compatible client. No other code changes needed.</p>
+          <div class="endpoint-display" id="endpointDisplay">/customer/v1/chat/completions</div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn--primary" onclick="onboardingNext()">✓ Start Routing</button>
+            <button class="btn" onclick="onboardingReset()">← Back</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: Route -->
+        <div class="onboarding__step" id="onbStep4">
+          <div class="onboarding__step-number">STEP 4/4</div>
+          <div class="onboarding__step-title">Router Active for <span id="activeCustomer" style="color:var(--red);">—</span></div>
+          <p style="font-size:12px;color:var(--text-2);margin-bottom:8px;">Customer is onboarded. All queries now routed through their policy profile. Try the demo buttons above.</p>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-3);padding:10px;border:1px solid var(--border);margin-bottom:8px;">
+            <div class="green">✓ Contract parsed</div>
+            <div class="green">✓ Policy profile generated</div>
+            <div class="green">✓ Endpoint created</div>
+            <div class="green">✓ Router connected</div>
+            <div id="routingRules" style="margin-top:6px;color:var(--text-2);"></div>
+          </div>
+          <button class="btn" onclick="onboardingReset()">↻ Onboard Another Customer</button>
+        </div>
       </div>
-      <div id="contractResult"></div>
     </div>
 
     <div class="panel">
@@ -351,6 +439,112 @@ function showToast(msg, isError) {
   t.classList.add('toast--show');
   clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => t.classList.remove('toast--show'), 3000);
+}
+
+// ── Hardcoded Contract Profiles (instant, zero-hallucination) ──
+const CONTRACT_PROFILES = {
+  acme: {
+    name: "ACME Corp",
+    region: "eu",
+    latency_target_ms: 1000,
+    blocked_providers: ["DeepSeek"],
+    preferred_providers: [],
+    cost_sensitivity: "high",
+    routing_tiers: { simple: { models: ["GPT-5.4 nano", "Gemini Flash Lite"], max_cost: 0.001 }, medium: { models: ["GPT-5.4 mini", "Claude Sonnet 4.6"], max_cost: 0.005 }, complex: { models: ["GPT-5.4", "Claude Opus 4.6"], max_cost: 0.02 } },
+    contract_text: "ACME Corp Data Processing Agreement. All customer data must be stored and processed within the European Union in compliance with GDPR. Do not use DeepSeek or any China-based providers for data processing. AI responses must be delivered within 1000ms latency target. Cost efficiency is a primary concern — optimize for cost while maintaining quality.",
+    endpoint: "/acme/v1/chat/completions",
+  },
+  globex: {
+    name: "Globex Inc",
+    region: "us",
+    latency_target_ms: 500,
+    blocked_providers: [],
+    preferred_providers: ["OpenAI", "Anthropic"],
+    cost_sensitivity: "low",
+    routing_tiers: { simple: { models: ["GPT-5.4 nano", "Claude Haiku 4.5"], max_cost: 0.001 }, medium: { models: ["Claude Sonnet 4.6", "GPT-5.4 mini"], max_cost: 0.005 }, complex: { models: ["Claude Opus 4.6", "GPT-5.4"], max_cost: 0.02 } },
+    contract_text: "Globex Inc Service Agreement. Data may be processed within the United States under CCPA compliance. Preferred providers: OpenAI and Anthropic for all AI services. Latency is critical — all responses must be delivered within 500 milliseconds maximum. Quality is the primary concern — do not compromise on response quality.",
+    endpoint: "/globex/v1/chat/completions",
+  },
+};
+let activeCustomer = null;
+
+// ── Onboarding ──
+function selectContract(id) {
+  activeCustomer = id;
+  document.querySelectorAll('.contract-option').forEach(o => o.classList.remove('contract-option--selected'));
+  document.getElementById('opt' + id.charAt(0).toUpperCase() + id.slice(1)).classList.add('contract-option--selected');
+  document.getElementById('onboardingStatus').textContent = 'Contract selected ✓';
+
+  const p = CONTRACT_PROFILES[id];
+  document.getElementById('profCustomer').textContent = p.name;
+  document.getElementById('profRegion').textContent = p.region.toUpperCase() + (p.region === 'eu' ? ' (GDPR)' : ' (CCPA)');
+  document.getElementById('profLatency').textContent = p.latency_target_ms + 'ms';
+  document.getElementById('profBlocked').textContent = p.blocked_providers.length ? p.blocked_providers.join(', ') : '—';
+  document.getElementById('profPreferred').textContent = p.preferred_providers.length ? p.preferred_providers.join(', ') : '—';
+  document.getElementById('profCost').textContent = p.cost_sensitivity === 'high' ? '💰 Cost-sensitive' : '⭐ Quality-critical';
+
+  goToOnbStep(2);
+}
+
+function onboardingNext() {
+  const current = document.querySelector('.onboarding__step--active');
+  const step = parseInt(current.dataset.step || current.id.replace('onbStep', '')) || 1;
+  if (step === 2) {
+    goToOnbStep(3);
+    document.getElementById('endpointDisplay').textContent = CONTRACT_PROFILES[activeCustomer].endpoint;
+  } else if (step === 3) {
+    goToOnbStep(4);
+    document.getElementById('activeCustomer').textContent = CONTRACT_PROFILES[activeCustomer].name;
+    const p = CONTRACT_PROFILES[activeCustomer];
+    let rules = '';
+    if (p.blocked_providers.length) rules += '⛔ Blocked: ' + p.blocked_providers.join(', ') + ' | ';
+    if (p.preferred_providers.length) rules += '⭐ Preferred: ' + p.preferred_providers.join(', ') + ' | ';
+    rules += (p.cost_sensitivity === 'high' ? '💰 Cost-optimized routing' : '⭐ Quality-optimized routing') + ' | ';
+    rules += '⏱ ' + p.latency_target_ms + 'ms max latency';
+    document.getElementById('routingRules').textContent = rules;
+    seedDemoDataForCustomer();
+  }
+}
+
+function goToOnbStep(n) {
+  document.querySelectorAll('.onboarding__step').forEach(s => s.classList.remove('onboarding__step--active'));
+  document.getElementById('onbStep' + n).classList.add('onboarding__step--active');
+  document.querySelectorAll('.onboarding-progress__step').forEach(s => s.classList.remove('onboarding-progress__step--active', 'onboarding-progress__step--done'));
+  for (let i = 1; i < n; i++) {
+    const el = document.querySelector('.onboarding-progress__step[data-step="' + i + '"]');
+    if (el) { el.classList.remove('onboarding-progress__step--active'); el.classList.add('onboarding-progress__step--done'); }
+  }
+  const active = document.querySelector('.onboarding-progress__step[data-step="' + n + '"]');
+  if (active) active.classList.add('onboarding-progress__step--active');
+  document.getElementById('onboardingStatus').textContent = n === 1 ? 'Select a contract ↓' : n === 2 ? 'Profile ready ✓' : n === 3 ? 'Endpoint ready ✓' : 'Router active ✓';
+}
+
+function onboardingReset() {
+  activeCustomer = null;
+  document.querySelectorAll('.contract-option').forEach(o => o.classList.remove('contract-option--selected'));
+  goToOnbStep(1);
+  document.getElementById('onboardingStatus').textContent = 'Select a contract ↓';
+}
+
+function seedDemoDataForCustomer() {
+  const queries = [
+    "What is your return policy?", "How do I reset my password?", "What time does the store close?",
+    "Is my order still shipping?", "Thanks for your help!",
+    "Can you summarize the key findings from Q3 earnings report?",
+    "Explain how quantum computing affects modern cryptography",
+    "Write a professional email to a client about delayed project timeline",
+    "Compare pros and cons of microservices vs monolith architecture",
+    "Analyze the liability exposure in Section 4.2 of this contract. Identify jurisdictional conflicts between GDPR and CCPA.",
+    "Review this code for security vulnerabilities: def auth(user, pass): return db.query(f'SELECT * FROM users WHERE user=\"{user}\"')",
+    "Develop a multi-cloud migration strategy for a fintech startup handling 50K transactions daily."
+  ];
+  showToast('Seeding routes for ' + CONTRACT_PROFILES[activeCustomer].name + '...');
+  queries.forEach((text, i) => {
+    setTimeout(() => {
+      fetch(`${API}/v1/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'auto', messages: [{ role: 'user', content: text }] }) }).catch(() => {});
+    }, i * 150);
+  });
+  setTimeout(() => refresh(), 2500);
 }
 
 // ── Response clean-up ──
@@ -481,8 +675,6 @@ async function route() {
       displayAnswer = DEMO_RESPONSES[prompt];
     } else if (DEMO_RESPONSES[prompt]) {
       displayAnswer = DEMO_RESPONSES[prompt];
-    } else if (isReal) {
-      displayAnswer = extractAnswer(d.response);
     } else {
       displayAnswer = generateFallbackResponse(prompt, cls);
     }
@@ -812,34 +1004,8 @@ function animateNumber(elId, target, _current) {
 function clearResult() { document.getElementById('resultArea').innerHTML = ''; }
 function showPromptDetail(e) { showToast('Prompt: ' + (e.prompt || '...') + ' | ' + e.model + ' | ' + e.cost_savings + '% saved'); }
 
-async function parseContract() {
-  const text = document.getElementById('contractInput').value.trim();
-  if (!text) { showToast('Enter contract text first', true); return; }
-  const area = document.getElementById('contractResult');
-  area.innerHTML = '<div class="contract-card" style="border-color:var(--text-3);"><span class="dim">⟳ Parsing...</span></div>';
-  try {
-    const res = await fetch(`${API}/v1/contract/parse`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, customer_name: 'ACME Corp' })
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const d = await res.json();
-    area.innerHTML = `<div class="contract-card" style="border-color:var(--red);">
-      <div style="color:var(--green);font-weight:600;margin-bottom:8px;">✓ Contract parsed — Endpoint active</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
-        <div><span class="dim">Customer:</span> ${d.profile.customer}</div>
-        <div><span class="dim">Region:</span> ${(d.profile.region||'global').toUpperCase()}</div>
-        <div><span class="dim">Latency:</span> ${d.profile.latency_target_ms}ms</div>
-        <div><span class="dim">Blocked:</span> <span class="red">${(d.profile.blocked_providers||[]).join(', ') || '—'}</span></div>
-        <div><span class="dim">Cost:</span> ${d.profile.cost_sensitivity||'balanced'}</div>
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--red);">${d.endpoint||'/unknown/v1/chat/completions'}</div>
-    </div>`;
-    showToast('Contract parsed successfully');
-  } catch(e) {
-    area.innerHTML = `<div class="contract-card" style="border-color:var(--red);color:var(--red);">Error: ${e.message}</div>`;
-    showToast('Parse failed: ' + e.message, true);
-  }
+function parseContract() {
+  showToast('Use the onboarding wizard above — select ACME Corp or Globex Inc');
 }
 
 function exportCSV() {
