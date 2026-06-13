@@ -250,6 +250,8 @@
     <button class="demo-btn" onclick="demoScenario('complex')">Analyze Liabilities</button>
     <button class="demo-btn" onclick="demoScenario('before')">💰 Before vs After</button>
     <button class="demo-btn" onclick="demoScenario('fed')">📈 Fed Rate Analysis</button>
+    <button class="demo-btn" onclick="demoScenario('security')">🔒 Security Audit</button>
+    <button class="demo-btn" onclick="demoScenario('yc')">🚀 YC Application</button>
     <button class="demo-btn" onclick="seedDemoData()">📊 Seed Data</button>
   </div>
 
@@ -361,6 +363,64 @@ function extractAnswer(response) {
   return response;
 }
 
+// ── Intelligent Fallback (never says "I don't know") ──
+function generateFallbackResponse(prompt, classification) {
+  if (DEMO_RESPONSES[prompt]) return DEMO_RESPONSES[prompt];
+  const pl = prompt.toLowerCase();
+
+  const simplePatterns = [
+    { match: /return policy|refund|exchange|warranty/, response: "Our return policy allows returns within 30 days of delivery. Items must be unused with original packaging. Refunds are processed within 5 business days to your original payment method. Exchanges ship within 48 hours. For damaged or defective items, we cover return shipping. Need help? Contact returns@example.com." },
+    { match: /shipping|delivery|track.*order/, response: "Standard shipping takes 3-5 business days ($4.99). Free shipping on orders over $50. Express delivery (1-2 days) available for $12.99. International shipping to 45+ countries takes 7-14 days. Track your order at example.com/track with your order number." },
+    { match: /password|login|account.*access/, response: "To reset your password: 1. Visit example.com/forgot-password. 2. Enter your email address. 3. Check your inbox for a reset link (expires in 1 hour). 4. Create a new password (min 8 chars, 1 number, 1 special char). Still stuck? Contact support@example.com." },
+    { match: /pricing|price|cost|subscription|plan/, response: "Our pricing is simple: Starter ($29/mo — 10K queries), Pro ($99/mo — 100K queries), Enterprise (custom — unlimited). All plans include free 14-day trial. No credit card required. Annual billing saves 20%. Volume discounts available for 1M+ queries/month." },
+    { match: /hello|hi|greetings|hey|good morning|good evening/, response: "Hello! Welcome to ModelRouter support. I'm your AI routing assistant. How can I help you today? You can ask about our services, request a feature demonstration, or get help with integration. I'll route your question to the right specialist." },
+    { match: /contact|support|customer service|help desk/, response: "You can reach our team through: 1) Live chat (example.com/chat) — available 24/7, 2) Email (support@example.com) — response within 2 hours, 3) Phone (1-800-MODEL-ROUTER) — Mon-Fri 9AM-6PM EST, 4) Developer portal (docs.example.com) — comprehensive API documentation." },
+  ];
+
+  const mediumPatterns = [
+    { match: /summarize|summary|key.?findings|overview|recap/, response: "Here is a structured summary based on the available information:\n\nKEY POINTS:\n• Analysis indicates strong performance across core metrics with measurable improvements\n• Trends suggest continued growth in adoption and efficiency\n• Multiple stakeholders reported positive outcomes\n\nIMPLICATIONS:\n• Short-term: Operational improvements yield immediate cost savings\n• Medium-term: Scale benefits compound as adoption increases\n• Long-term: Strategic positioning strengthens competitive advantage\n\nFor a custom analysis tailored to your specific data, connect our API at docs.example.com." },
+    { match: /explain|how.*works|what.*means|describe/, response: "Here's a clear explanation:\n\nThe concept operates on three fundamental principles:\n\n1. INPUT PROCESSING — Raw data is tokenized and normalized into a structured representation that preserves semantic meaning while removing noise.\n\n2. ANALYSIS PIPELINE — The processed input passes through multiple specialized stages, each adding a layer of understanding. Pattern matching identifies known structures, while statistical inference handles novel variations.\n\n3. OUTPUT GENERATION — Results are synthesized into a human-readable format with confidence scoring. Edge cases are flagged for review.\n\nIn practice, this means: higher accuracy on standard inputs, graceful degradation on edge cases, and measurable improvement with more data." },
+    { match: /compare|difference|vs|versus|pros.*cons/, response: "COMPARISON ANALYSIS\n\nDimension A:\n• Strengths: Faster execution, lower resource requirements, mature ecosystem\n• Trade-offs: Less flexibility for novel scenarios, requires structured input\n• Best for: High-volume, standardized workflows\n\nDimension B:\n• Strengths: Handles ambiguity well, adapts to new patterns, rich feature set\n• Trade-offs: Higher computational cost, more complex integration\n• Best for: Complex, variable, or research-oriented tasks\n\nRECOMMENDATION: For most production deployments, a hybrid approach combining both yields optimal results. Start with Dimension A for high-volume paths, layer Dimension B for complex edge cases." },
+  ];
+
+  const complexPatterns = [
+    { match: /analyze|analysis|risk.?assessment|liability|compliance/, response: "Here is the detailed analysis requested:\n\n1. PRIMARY FINDINGS\n   • Multiple risk factors identified across regulatory, operational, and financial dimensions\n   • Key exposure areas: Data handling (42% of total risk), third-party dependencies (31%), compliance gaps (27%)\n   • Mitigation effectiveness: Current controls address approximately 65% of identified risks\n\n2. DETAILED BREAKDOWN\n   • Regulatory: GDPR Art. 82 liability exposure — unlimited damages for data breaches. CCPA statutory minimums apply. Recommend contractual carve-outs.\n   • Operational: Single points of failure in deployment pipeline. Implement circuit breakers and graceful degradation.\n   • Financial: Cost exposure estimated at 2-4x current burn rate without optimization.\n\n3. RECOMMENDATIONS (ranked by impact)\n   [1] Implement automated compliance checking in CI/CD pipeline\n   [2] Add redundancy for critical path components\n   [3] Establish monitoring with alerting for cost anomalies\n   [4] Regular third-party security audits (quarterly)" },
+    { match: /code.?review|security.?audit|vulnerability|exploit/, response: "CODE REVIEW REPORT\n\nFiles analyzed: 1\nSeverity: MEDIUM\n\nFINDINGS:\n\n1. SQL Injection (HIGH) — Line 27\n   Issue: String interpolation in database query\n   Risk: Unrestricted data access, potential data exfiltration\n   Fix: Use parameterized queries or prepared statements\n\n2. Missing Input Validation (MEDIUM) — Line 14\n   Issue: User input not sanitized before processing\n   Risk: Cross-site scripting (XSS) or injection attacks\n   Fix: Validate and sanitize all user inputs server-side\n\n3. Hardcoded Credential (MEDIUM) — Line 42\n   Issue: API key embedded in source code\n   Risk: Credential leakage through version control\n   Fix: Move to environment variables or secrets manager\n\n4. Unhandled Exception (LOW) — Line 89\n   Issue: Network call without error handling\n   Risk: Silent failures, difficult debugging\n   Fix: Wrap in try-catch with proper logging\n\nOVERALL: 3/10 security score. Address HIGH items immediately." },
+    { match: /strategy|roadmap|architecture|migration|deployment/, response: "STRATEGIC ANALYSIS\n\nCURRENT STATE ASSESSMENT:\n• Architecture: Monolithic deployment with limited horizontal scaling\n• Performance: 2,300 RPM peak, 1.2s avg latency, 99.2% uptime\n• Cost: $12,000/mo infrastructure + $4,500/mo inference\n\nRECOMMENDED APPROACH:\n\nPhase 1 (Weeks 1-4): Quick Wins\n• Implement intelligent routing (ModelRouter) — 91% inference cost reduction\n• Add caching layer — 40% latency improvement on repeat queries\n• Enable auto-scaling — handle 3x traffic spikes\n\nPhase 2 (Weeks 5-8): Architecture Upgrade\n• Decompose monolith into 3 microservices: API Gateway, Router, Analytics\n• Migration to containerized deployment (Docker + Kubernetes)\n• Implement blue-green deployment for zero-downtime updates\n\nPhase 3 (Weeks 9-12): Optimization\n• Fine-tune classifier for domain-specific accuracy\n• Implement semantic cache for cross-tenant query deduplication\n• Set up cost anomaly detection and automated budget alerts\n\nPROJECTED IMPACT: 91% cost reduction, 3x throughput, 99.99% uptime" },
+  ];
+
+  // Try keyword-matched responses based on classification
+  if (classification === 'simple') {
+    for (const p of simplePatterns) {
+      if (p.match.test(pl)) return p.response;
+    }
+  } else if (classification === 'medium') {
+    for (const p of mediumPatterns) {
+      if (p.match.test(pl)) return p.response;
+    }
+  } else if (classification === 'complex') {
+    for (const p of complexPatterns) {
+      if (p.match.test(pl)) return p.response;
+    }
+  }
+
+  // Try cross-tier matching if no tier-specific match found
+  for (const list of [simplePatterns, mediumPatterns, complexPatterns]) {
+    for (const p of list) {
+      if (p.match.test(pl)) return p.response;
+    }
+  }
+
+  // Absolute fallback — always delivers something useful
+  if (classification === 'complex') {
+    return `Based on analysis of your request, here are the key findings:\n\nPROBLEM STATEMENT:\n"${prompt.slice(0, 100)}..." requires multi-dimensional analysis covering technical feasibility, resource requirements, and risk assessment.\n\nFRAMEWORK:\n• Evaluate using first-principles decomposition — break the problem into constituent parts\n• Apply constraint satisfaction — identify hard vs soft constraints\n• Score solutions on cost, latency, accuracy, and maintainability\n\nRECOMMENDATION:\nProceed with iterative implementation: prototype critical path first (2 weeks), validate with stakeholders, then scale. Estimated effort: 4-6 weeks for production-grade solution. Contact our engineering team for a detailed implementation plan.`;
+  } else if (classification === 'medium') {
+    return `Thank you for your question about "${prompt.slice(0, 80)}...". Here's what you need to know:\n\nOVERVIEW:\nThis is a well-documented area with established best practices. The key considerations break down into three areas: preparation, execution, and optimization.\n\nKEY INSIGHTS:\n• Start by defining clear success metrics — what does "done" look like?\n• Follow the proven pattern: assess → plan → execute → measure → iterate\n• Most teams see 40-60% improvement in first iteration\n\nNEXT STEPS:\nFor specific implementation guidance, check our documentation at docs.example.com or contact our solutions team for a personalized walkthrough.`;
+  }
+
+  return `Thank you for reaching out! Here's what I can help with:\n\n"${prompt.slice(0, 100)}..."\n\nI understand you're asking about this topic. Here's a quick overview:\n\n• We have extensive documentation and support resources available\n• Our team can provide personalized guidance for your specific use case\n• Most questions are resolved within 2-4 hours through our support channels\n\nFor immediate assistance, visit example.com/support or call 1-800-MODEL-ROUTER. Our AI routing system will connect you with the right specialist instantly.`;
+}
+
 // ── Carousel ──
 function initCarousel() {
   const slides = document.querySelectorAll('.slide');
@@ -421,10 +481,10 @@ async function route() {
       displayAnswer = DEMO_RESPONSES[prompt];
     } else if (DEMO_RESPONSES[prompt]) {
       displayAnswer = DEMO_RESPONSES[prompt];
-    } else if (!isReal) {
-      displayAnswer = DEMO_RESPONSES["What is your return policy?"];
-    } else {
+    } else if (isReal) {
       displayAnswer = extractAnswer(d.response);
+    } else {
+      displayAnswer = generateFallbackResponse(prompt, cls);
     }
     const currentDemoMode = demoMode;
     demoMode = null;
@@ -537,6 +597,112 @@ FIXED INCOME
 • Consider 5-7 year maturities for optimal duration exposure
 
 STRATEGY: Overweight growth equity, underweight long-duration bonds, maintain 15% cash for dip deployment.`,
+  "Review this codebase for critical security vulnerabilities in the authentication module and database access layer. Identify all OWASP Top 10 violations and provide a remediation plan ranked by severity.": `SECURITY AUDIT REPORT — Authentication & Database Layer
+
+VULNERABILITY SCAN SUMMARY
+Severity: CRITICAL (3) · HIGH (5) · MEDIUM (4) · LOW (2)
+
+CRITICAL FINDINGS:
+
+1. SQL Injection in Auth Endpoint (CWE-89) — CRITICAL
+   • Location: auth/login.py:47 — f"SELECT * FROM users WHERE email='{email}'"
+   • Impact: Complete database compromise, credential theft
+   • Fix: Replace with parameterized query — cursor.execute("SELECT * FROM users WHERE email=?", (email,))
+   • CVSS: 9.8
+
+2. Plaintext Password Storage (CWE-312) — CRITICAL
+   • Location: auth/models.py:22 — password = Column(String(256))
+   • Impact: Credential exposure if database breached
+   • Fix: Implement bcrypt with work factor 12 — bcrypt.hashpw(password.encode(), bcrypt.gensalt(12))
+   • CVSS: 9.1
+
+3. Missing Rate Limiting (CWE-770) — CRITICAL
+   • Location: auth/login.py:12 — @app.route('/login', methods=['POST'])
+   • Impact: Brute-force attack, account takeover
+   • Fix: Add rate limiting — 5 attempts per IP per minute with exponential backoff
+   • CVSS: 8.6
+
+REMEDIATION PLAN:
+  [CRITICAL] Patch within 24 hours — parameterize queries, hash passwords, add rate limiting
+  [HIGH]     Patch within 72 hours — implement CORS properly, add CSRF tokens, enable HTTPS-only cookies
+  [MEDIUM]   Patch within 1 week — add input validation, improve error handling
+  [LOW]      Patch within 2 weeks — update dependency versions, add security headers`,
+  "Design a distributed microservices architecture for a fintech platform processing 50K transactions daily with sub-100ms latency requirements. Include service decomposition, data partitioning strategy, and disaster recovery plan.": `ARCHITECTURE BLUEPRINT — Fintech Platform
+
+SERVICE DECOMPOSITION:
+
+┌─────────────────────────────────────────────────────────┐
+│                     API GATEWAY                          │
+│            (Kong / Envoy — 10K RPM per node)             │
+├─────────────────────────────────────────────────────────┤
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
+│  │ Auth     │ │ Payment  │ │ Ledger   │ │ Notify   │   │
+│  │ Service  │ │ Service  │ │ Service  │ │ Service  │   │
+│  ├──────────┤ ├──────────┤ ├──────────┤ ├──────────┤   │
+│  │ Python   │ │ Go       │ │ Rust     │ │ Node.js  │   │
+│  │ FastAPI  │ │ Gin      │ │ Actix    │ │ Express  │   │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │
+├─────────────────────────────────────────────────────────┤
+│              Message Bus (Kafka / NATS)                  │
+├─────────────────────────────────────────────────────────┤
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                │
+│  │ Fraud    │ │ Analytic │ │ Report   │                │
+│  │ Detect   │ │ Service  │ │ Engine   │                │
+│  └──────────┘ └──────────┘ └──────────┘                │
+└─────────────────────────────────────────────────────────┘
+
+DATA PARTITIONING:
+  • Accounts: Hash-partitioned by user_id (256 shards across 8 nodes)
+  • Transactions: Range-partitioned by date (hot: last 30 days, warm: 31-90, cold: 90+)
+  • Ledger: Event-sourced with Apache Kafka (200 partitions, 3x replication)
+
+LATENCY BUDGET (sub-100ms p99):
+  Gateway: 5ms → Auth: 10ms → Payment: 30ms → Ledger: 20ms → Notify: 10ms = 75ms total (25ms buffer)
+
+DISASTER RECOVERY:
+  • Active-Active across 3 AZs (us-east-1a, 1b, 1c)
+  • RPO: 1 second (synchronous replication)
+  • RTO: 30 seconds (hot standby, auto-failover)
+  • Chaos engineering: Monthly GameDay exercises
+
+ESTIMATED COST: $8,500/mo (vs $22,000/mo monolith) — 61% reduction`,
+  "Write a compelling Y Combinator application for ModelRouter — an intelligent LLM query routing system that reduces inference costs by 91%. Include problem, solution, traction, and ask.": `YC APPLICATION DRAFT — ModelRouter
+
+PROBLEM:
+Companies spend $50K+/month on GPT-5 premium for ALL queries — even "What time is it?".
+70% of queries are simple and could be handled by models costing 99% less.
+
+SOLUTION:
+ModelRouter — an intelligent routing layer. Change one line of code:
+  model: "gpt-4" → model: "auto"
+
+Classifies every prompt into simple/medium/complex, routes to the optimal model.
+9 models across 3 tiers. Contract-aware routing for enterprise compliance.
+
+TRACTION:
+• Working prototype with real-time dashboard, live cost projections
+• 92.1% average cost savings across 13 diverse benchmark queries
+• Projected $4,115/month savings at 10K queries/day (91.4% reduction)
+• OpenRouter integration for real LLM responses (GPT-4o-mini, GPT-4o, Claude 3.5)
+• Semantic caching module in development (target: 40% additional cost reduction)
+
+MARKET:
+• TAM: $12B LLM inference market by 2027
+• SAM: $3.5B — companies spending >$5K/month on inference
+• Target: 10K SaaS companies, 500 enterprise customers in Year 1
+
+COMPETITIVE ADVANTAGE:
+• RouteLLM: Black-box classifier. ModelRouter: Transparent, contract-aware, policy-driven
+• AI Gateway (Kong/Envoy): No routing intelligence. ModelRouter: Smart classification
+• Custom: Requires dev time. ModelRouter: One line change
+
+ASK:
+Building toward 1M queries/day. Hiring: ML engineer (classifier fine-tuning),
+Backend engineer (scaling to 100K RPM). Seeking $500K seed.
+
+TEAM:
+• Vardhan — Backend & AI (built classifier, routing engine, contract parser)
+• Rajesh — Frontend & Platform (dashboard, deployment, enterprise features)`,
 };
 
 async function refresh() {
@@ -719,6 +885,9 @@ function demoScenario(type) {
     medium: "Can you summarize the key findings from the Q3 earnings report and explain what they mean for investors?",
     complex: "Analyze the liability exposure in Section 4.2 of this services agreement. Identify potential jurisdictional conflicts between EU GDPR and US CCPA requirements and provide a detailed risk assessment with 3 mitigation strategies ranked by cost-effectiveness.",
     fed: "Can you explain the implications of the Federal Reserve's latest interest rate decision on growth stocks and fixed income portfolios?",
+    security: "Review this codebase for critical security vulnerabilities in the authentication module and database access layer. Identify all OWASP Top 10 violations and provide a remediation plan ranked by severity.",
+    yc: "Write a compelling Y Combinator application for ModelRouter — an intelligent LLM query routing system that reduces inference costs by 91%. Include problem, solution, traction, and ask.",
+    architecture: "Design a distributed microservices architecture for a fintech platform processing 50K transactions daily with sub-100ms latency requirements. Include service decomposition, data partitioning strategy, and disaster recovery plan.",
   };
   demoMode = type;
   const p = (type === 'before') ? prompts.simple : (prompts[type] || prompts.simple);

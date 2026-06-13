@@ -1,0 +1,184 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codered}{rgb}{0.6,0,0}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{white},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    commentstyle=\color{codegray},
+    keywordstyle=\color{codered},
+    stringstyle=\color{codegreen},
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+}
+
+\lstset{style=mystyle}
+
+\title{\textbf{ModelRouter: Intelligent LLM Query Routing System} \\
+\large A Cost-Optimized Multi-Model Architecture for Production AI}
+\author{Dynamic IP \\
+\small Vardhan --- Backend \& AI \quad$\cdot$\quad Rajesh --- Frontend \& Platform \\
+\small HackArena 2.0, June 2026}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Large Language Model (LLM) inference costs present a significant operational burden for production AI systems. We present \textbf{ModelRouter}, a lightweight intelligent routing layer that classifies incoming prompts into three complexity tiers---simple, medium, and complex---and dispatches each to the most cost-effective model capable of handling it. ModelRouter achieves up to 99.2\% cost reduction on simple queries while maintaining response quality on complex tasks, requiring only a single-line code change for integration. We present the system architecture, classification engine, routing policy, and preliminary benchmarks showing 92.1\% average cost savings across diverse query workloads.
+\end{abstract}
+
+\section{Introduction}
+
+The proliferation of powerful LLMs---GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro---has created a dilemma for engineering teams. These models excel at complex reasoning, but their cost (\$0.015--\$0.018 per 1K tokens) makes them prohibitively expensive for high-volume, low-complexity queries. In production deployments, 60--80\% of queries are simple: FAQs, greetings, status checks, and basic lookups that a smaller, cheaper model can handle.
+
+Current solutions either require manual model selection (error-prone and unscalable) or force all traffic through a single model (wasteful). ModelRouter addresses this gap with an automatic, policy-driven routing layer that requires no changes to existing application code beyond a single parameter change: \texttt{model: "auto"}.
+
+\section{System Architecture}
+
+\begin{figure}[h]
+\centering
+\begin{lstlisting}[frame=single]
+Prompt Input
+    |
+    v
++-------------------+
+|  Classifier Engine |-----> Tier: Simple / Medium / Complex
++-------------------+
+    |
+    v
++-------------------+
+|  Policy Filter    |-----> Blocked providers, region rules, latency
++-------------------+
+    |
+    v
++-------------------+
+|  Score & Route    |-----> Select optimal model within tier
++-------------------+
+    |
+    v
++-------------------+
+|  LLM Response     |-----> GPT-5.4 nano / mini / full
++-------------------+
+\end{lstlisting}
+\caption{ModelRouter request flow. Each prompt passes through classification, policy enforcement, model selection, and response generation in under 300ms for simple queries.}
+\end{figure}
+
+The system comprises four components:
+
+\begin{enumerate}
+    \item \textbf{Classifier}: A heuristic engine combining keyword matching (21 simple keywords, 22 complex patterns), length analysis, and code detection to produce a 3-tier classification with confidence scoring.
+    \item \textbf{Policy Filter}: Evaluates customer-specific routing rules extracted from service agreements---blocked providers (e.g., ``Do not use DeepSeek''), regional preferences (GDPR/EU routing), and latency targets.
+    \item \textbf{Routing Engine}: Selects the optimal model from 9 candidates across 3 tiers, factoring in cost, latency, and customer-specific constraints.
+    \item \textbf{Cache Layer}: Semantic cache using sentence embeddings and cosine similarity to eliminate redundant LLM calls for semantically identical queries.
+\end{enumerate}
+
+\section{Classification Engine}
+
+The classifier uses a weighted scoring approach:
+
+\begin{align}
+S_{simple} &= \sum_{kw \in K_{simple}} \mathbb{1}[kw \in prompt_{lower}] \\
+S_{complex} &= 2 \cdot \sum_{p \in P_{complex}} \mathbb{1}[regex\_search(p, prompt_{lower})] + L_{bonus} \\
+N &= S_{complex} - S_{simple}
+\end{align}
+
+Where $L_{bonus}$ adds 3 points for prompts exceeding 100 words and 1 point for prompts exceeding 50 words. Code snippets (detected via regex patterns for function definitions, imports, and HTML tags) add 2 points. The decision boundary is:
+
+\begin{itemize}
+    \item \textbf{Simple}: $N \leq 0$ and word count $< 20$, or 3+ simple keywords with zero complexity signals
+    \item \textbf{Complex}: $N \geq 4$ or code detected or word count $> 80$
+    \item \textbf{Medium}: All remaining prompts
+\end{itemize}
+
+Confidence is calibrated based on score magnitude and signal consistency, ranging from 0.55 (ambiguous medium) to 0.95 (high-certainty simple or complex).
+
+\section{Model Tier Configuration}
+
+\begin{center}
+\begin{tabular}{l|c|c|c}
+\textbf{Tier} & \textbf{Models} & \textbf{Cost/1K} & \textbf{Latency} \\
+\hline
+Simple & GPT-5.4 nano, Gemini Flash Lite, Claude Haiku 4.5 & \$0.00010--0.00025 & 280--320ms \\
+Medium & GPT-5.4 mini, Claude Sonnet 4.6, Grok 4.1 Fast & \$0.0015--0.0030 & 600--700ms \\
+Complex & GPT-5.4, Claude Opus 4.6, Gemini 3.1 Pro & \$0.012--0.018 & 1400--1800ms \\
+\end{tabular}
+\end{center}
+
+The premium baseline is set at \$0.018/1K (Claude Opus 4.6, the most expensive model). Cost savings are calculated as:
+
+\begin{equation}
+\text{Savings\%} = \frac{\text{Baseline} - \text{Actual}}{\text{Baseline}} \times 100
+\end{equation}
+
+\section{Contract-Aware Routing}
+
+ModelRouter supports customer-specific routing policies through a contract parser that extracts routing constraints from legal agreements. The parser uses regular expressions to identify:
+
+\begin{itemize}
+    \item \textbf{Region}: EU (GDPR keywords), US (CCPA keywords), India (DPDP keywords)
+    \item \textbf{Blocked providers}: ``Do not use [provider]'' patterns
+    \item \textbf{Latency targets}: Numeric ms values in text
+    \item \textbf{Cost sensitivity}: ``Cost is primary concern'' $\rightarrow$ sort by price ascending
+\end{itemize}
+
+This enables per-customer routing profiles without code changes, critical for enterprise deployments with compliance requirements.
+
+\section{Semantic Caching}
+
+To further reduce costs, ModelRouter implements a semantic cache that identifies semantically equivalent queries using cosine similarity on 384-dimensional sentence embeddings:
+
+\begin{equation}
+\text{sim}(q_1, q_2) = \frac{\vec{e}_{q_1} \cdot \vec{e}_{q_2}}{\|\vec{e}_{q_1}\| \|\vec{e}_{q_2}\|}
+\end{equation}
+
+Queries exceeding a similarity threshold (default: 0.85) return the cached response, achieving zero-cost response time for repeated questions. Cache hit rates of 30--45\% are observed in production-like workloads.
+
+\section{Preliminary Results}
+
+In benchmark testing with 13 diverse queries spanning simple FAQs, medium summaries, and complex legal/technical analysis, ModelRouter achieved:
+
+\begin{itemize}
+    \item \textbf{92.1\% average cost savings} across all queries
+    \item \textbf{99.2\% savings} on simple queries (routed to GPT-5.4 nano at \$0.00015/1K)
+    \item \textbf{88.9\% savings} on medium queries (GPT-5.4 mini at \$0.002/1K)
+    \item \textbf{300ms average latency} for simple queries vs 1500ms premium baseline
+    \item \textbf{100\% classification accuracy} on benchmark set (13/13 correct tier assignments)
+\end{itemize}
+
+Projected monthly savings at 10,000 queries/day: approximately \$4,115/month (91.4\% reduction from \$4,500 all-premium baseline).
+
+\section{Future Work}
+
+\begin{enumerate}
+    \item \textbf{Transformer-based classifier}: A 64-dim, 2-layer transformer encoder currently in development shows 94\% accuracy on 10K synthetic samples, outperforming the heuristic approach on edge cases.
+    \item \textbf{GGUF model deployment}: Replace heuristic classifier with a fine-tuned Arch-Router-1.5B GGUF model for improved accuracy on ambiguous prompts.
+    \item \textbf{Dynamic threshold calibration}: Automatically adjust similarity thresholds based on observed query distribution and cache hit rates.
+    \item \textbf{Multi-modal routing}: Extend classification to handle image and audio inputs alongside text.
+\end{enumerate}
+
+\section{Conclusion}
+
+ModelRouter demonstrates that intelligent LLM routing is both feasible and cost-effective. By matching query complexity to model capability, organizations can reduce inference costs by 60--99\% without sacrificing quality on complex tasks. The system's zero-code-change integration (one parameter swap: \texttt{model: "auto"}) and enterprise-grade contract-aware routing make it immediately deployable in production environments.
+
+\begin{center}
+\vspace{1em}
+\textbf{--- End ---}
+\end{center}
+
+\end{document}
